@@ -1,4 +1,3 @@
 name: my-app
-working_dir: my-app/
 compose_files: 
   - docker-compose.yml
