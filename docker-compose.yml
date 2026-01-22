@@ -1,11 +1,47 @@
-version: '3'
 services:
   ollama:
-    image: ollama/ollama
+    image: docker.io/ollama/ollama:latest
     container_name: ollama
-    volumes:
-      - ollama:/root/.ollama
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
     ports:
-      - "11434:11434"
-volumes:
-  ollama:
+      - "7869:11434"
+    volumes:
+      - ./ollama/ollama:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=1h
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    # Use one of the two GPU methods below. Prefer the simple 'gpus:' line.
+
+    gpus: all
+    # OR use device_requests if your compose version lacks 'gpus:'
+    # device_requests:
+    #   - driver: nvidia
+    #     count: all
+    #     capabilities: ["gpu"]
+
+    networks:
+      - ollama-docker
+
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ollama-webui
+    restart: unless-stopped
+    depends_on:
+      - ollama
+    ports:
+      - "80:8080"
+    volumes:
+      - ./ollama/ollama-webui:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URLS=http://ollama:11434
+      - WEBUI_NAME=OBU Cyber Lab - Skynet
+      - WEBUI_SECRET_KEY=${WEBUI_KEY}
+    networks:
+      - ollama-docker
+
+networks:
+  ollama-docker:
+    external: false
