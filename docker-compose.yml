@@ -34,7 +34,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ~/ollama/ollama-webui:/app/backend/data
+      - /home/skynet/ollama/ollama-webui:/app/backend/data
     environment:
       - OLLAMA_BASE_URLS=http://ollama:11434
       - WEBUI_NAME=Arkansas Cyber Advisor
