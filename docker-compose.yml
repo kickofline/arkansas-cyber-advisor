@@ -8,7 +8,7 @@ services:
     ports:
       - "7869:11434"
     volumes:
-      - ./ollama/ollama:/root/.ollama
+      - /home/skynet/ollama/ollama:/root/.ollama
     environment:
       - OLLAMA_KEEP_ALIVE=1h
       - NVIDIA_VISIBLE_DEVICES=all
