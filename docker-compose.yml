@@ -1,4 +1,9 @@
 services:
+  ui:
+    build:
+      context: .
+      no_cache: true
+    container_name: ui
   ollama:
     image: docker.io/ollama/ollama:latest
     container_name: ollama
