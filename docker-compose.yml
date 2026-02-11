@@ -3,7 +3,7 @@ services:
     build:
       context: .
       no_cache: true
-      image: arkansas-cyber-advisor-ui
+    image: arkansas-cyber-advisor-ui
     container_name: ui
     ports:
       - "5000:5000"
