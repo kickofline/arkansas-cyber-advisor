@@ -13,6 +13,8 @@ function appendBubble(text, asAi) {
     bubble.classList.add("chatBubble", asAi ? 'ai' : 'client')
     bubble.innerText = text
 
+    // TODO: Make chat bubble actually a bubble
+
     conversation.appendChild(bubble)
 }
 

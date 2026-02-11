@@ -26,7 +26,10 @@ submit.onclick = function () {
 
     appendBubble(msg.value, false)
 
+    // TODO: make sure to remove this when done designing UI
     if (msg.value === "Hello!") {
         appendBubble("Hello user!!!", true)
     }
+
+    // TODO: Make request to AI agent located in the cyberlab
 }
