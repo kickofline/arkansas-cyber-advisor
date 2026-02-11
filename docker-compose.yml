@@ -6,6 +6,8 @@ services:
     container_name: ui
     ports:
       - "5000:5000"
+    environment:
+      - OLLAMA_URL=http://ollama:11434
   ollama:
     image: docker.io/ollama/ollama:latest
     container_name: ollama
