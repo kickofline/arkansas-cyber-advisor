@@ -8,7 +8,7 @@ services:
     ports:
       - "7869:11434"
     volumes:
-      - ./ollama/ollama:/root/.ollama
+      - /home/skynet/ollama/ollama:/root/.ollama
     environment:
       - OLLAMA_KEEP_ALIVE=1h
       - NVIDIA_VISIBLE_DEVICES=all
@@ -32,12 +32,12 @@ services:
     depends_on:
       - ollama
     ports:
-      - "80:8080"
+      - "8080:8080"
     volumes:
-      - ./ollama/ollama-webui:/app/backend/data
+      - /home/skynet/ollama/ollama-webui:/app/backend/data
     environment:
       - OLLAMA_BASE_URLS=http://ollama:11434
-      - WEBUI_NAME=OBU Cyber Lab - Skynet
+      - WEBUI_NAME=Arkansas Cyber Advisor
       - WEBUI_SECRET_KEY=${WEBUI_KEY}
     networks:
       - ollama-docker
