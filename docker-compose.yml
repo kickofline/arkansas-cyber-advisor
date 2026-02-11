@@ -8,6 +8,8 @@ services:
       - "5000:5000"
     environment:
       - OLLAMA_URL=http://ollama:11434
+    networks:
+      - ollama-docker
   ollama:
     image: docker.io/ollama/ollama:latest
     container_name: ollama
