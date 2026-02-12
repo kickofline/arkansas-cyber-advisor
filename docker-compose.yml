@@ -5,6 +5,8 @@ services:
       no_cache: true
     image: arkansas-cyber-advisor-ui
     container_name: ui
+    depends_on:
+      - ollama
     ports:
       - "5000:5000"
     environment:
