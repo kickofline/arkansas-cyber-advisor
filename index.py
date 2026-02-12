@@ -1,9 +1,12 @@
 from flask import Flask, Response, request, stream_with_context, send_from_directory
 from ollama import Client
+from os import getenv
 
 app = Flask(__name__, static_folder="public", static_url_path="")
 
-client = Client(host="http://skynet:7869")
+url = getenv("OLLAMA_URL", "http://skynet:7869")
+print("Connecting to:", url)
+client = Client(host=url)
 MODEL = "gpt-oss:20b"
 
 @app.get("/")
