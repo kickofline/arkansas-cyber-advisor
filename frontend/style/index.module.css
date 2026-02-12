@@ -1,0 +1,17 @@
+/*
+    TODO: Make the website pretty. (Maybe a dark theme to save our eyes?)
+*/
+
+main {
+    display: flex;
+    flex-direction: column;
+    width: 800px;
+}
+
+.client {
+    align-self: flex-end;
+}
+
+.ai {
+    align-self: flex-start;
+}
