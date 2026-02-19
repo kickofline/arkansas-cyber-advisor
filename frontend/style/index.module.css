@@ -2,6 +2,23 @@
     TODO: Make the website pretty. (Maybe a dark theme to save our eyes?)
 */
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+body {
+    background-color: #202020;
+    color: white;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+   
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h2 {
+    font-family: 'Playfair Display', 'Times New Roman', Times, serif;
+    font-size: 32px;
+    font-weight: 500;
+}
+
 main {
     display: flex;
     flex-direction: column;
