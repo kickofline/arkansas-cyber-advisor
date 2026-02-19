@@ -9,7 +9,7 @@ MODEL = "skynet"
 def setup_model():
     with open("system_prompt.md", encoding="utf-8") as f:
         system_prompt = f.read()
-    resources = {"test": "This is a test resource."}
+    resources = {}
     for filename in os.listdir("resources"):
         if filename.endswith(".md"):   
             with open(os.path.join("resources", filename), encoding="utf-8") as f:
