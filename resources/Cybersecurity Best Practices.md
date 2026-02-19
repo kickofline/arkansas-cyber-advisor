@@ -46,10 +46,3 @@
 * Log and monitor system activity
 
 ---
-
-If you'd like, I can also provide:
-
-* A **one-page printable checklist**
-* A **student-friendly version**
-* A **workplace security guide**
-* A **beginner learning roadmap**
