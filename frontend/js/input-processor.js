@@ -21,15 +21,44 @@ function sanitize(string) {
     return string.replace(reg, (match) => (map[match]));
 }
 
+function update_msg_bubble() {
+
+}
+
 submit.onclick = function () {
     console.log(`Sanitized content: ${sanitize(msg.value)}`)
 
-    appendBubble(msg.value, false)
+    const text = sanitize(msg.value).trim()
+    if (!text) {
+        console.log("text empty......")
+        return
+    };
 
-    // TODO: make sure to remove this when done designing UI
-    if (msg.value === "Hello!") {
-        appendBubble("Hello user!!!", true)
+    submit.disabled = true
+    const userBubble = appendBubble(msg.value, false)
+
+    msg.value = ""
+
+    const es = new EventSource("/stream?q=" + encodeURIComponent(text))
+
+    const aiBubble = appendBubble("", true)
+
+    es.onmessage = (ev) => {
+        if (ev.data === "[DONE]") {
+            es.close()
+            submit.disabled = false
+            msg.focus()
+            return;
+        }
+
+
+        aiBubble.innerHTML += ev.data
     }
 
-    // TODO: Make request to AI agent located in the cyberlab
+    es.onerror = () => {
+        es.close()
+        aiBubble.innerHTML += "\n\n [[STREAM ERROR]]"
+        submit.disabled = false
+
+    }// TODO: Make request to AI agent located in the cyberlab
 }
