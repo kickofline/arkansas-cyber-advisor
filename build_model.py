@@ -19,6 +19,7 @@ def setup_model():
     client.create(model=MODEL, from_='gpt-oss:20b', system=system_prompt,
         messages=messages
     )
-
+    print(f"Model '{MODEL}' created with system prompt and {len(resources)} resources.")
+    
 if __name__ == "__main__":
     setup_model()
