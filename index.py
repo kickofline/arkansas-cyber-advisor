@@ -1,9 +1,12 @@
-from flask import Flask, Response, request, stream_with_context, send_from_directory
+from flask import Flask, Response, request, stream_with_context, send_from_directory, session
+from flask_session import Session
 from ollama import Client
 import os
 
 app = Flask(__name__, static_folder="frontend", static_url_path="")
-
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_TYPE"] = "filesystem"
+Session(app)
 
 
 url = os.getenv("OLLAMA_URL", "http://skynet:7869")
@@ -13,17 +16,23 @@ MODEL = "skynet"
 
 @app.get("/")
 def index():
+    if not session.get("messages"):
+        session["messages"] = []
     return send_from_directory("frontend", "index.html")
 
 @app.get("/stream")
 def stream():
+    messages = session.get("messages", [])
     prompt = request.args.get("q", "")
+    messages.append({"role": "user", "content": prompt})
 
     def gen():
         try:
+            in_progress_response = ""
             chunks = client.chat(
                 model=MODEL,
-                messages=[{"role": "user", "content": prompt}],
+                # messages=[{"role": "user", "content": prompt}],
+                messages=messages,
                 stream=True,
             )
 
@@ -31,8 +40,11 @@ def stream():
                 piece = chunk.get("message", {}).get("content", "")
                 if piece:
                     formatted = piece.replace('\n', '\ndata: ')
+                    in_progress_response += piece
                     yield f"data: {formatted}\n\n"
 
+            messages.append({"role": "assistant", "content": in_progress_response})
+            session["messages"] = messages
             yield "data: [DONE]\n\n"
 
         except Exception as e:
