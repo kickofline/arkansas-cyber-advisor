@@ -42,6 +42,7 @@ submit.onclick = function () {
     const es = new EventSource("/stream?q=" + encodeURIComponent(text))
 
     const aiBubble = appendBubble("", true)
+    let fullText = ""
 
     es.onmessage = (ev) => {
         if (ev.data === "[DONE]") {
@@ -51,8 +52,8 @@ submit.onclick = function () {
             return;
         }
 
-
-        aiBubble.innerHTML += ev.data
+        fullText += ev.data
+        aiBubble.innerHTML = marked.parse(fullText)
     }
 
     es.onerror = () => {

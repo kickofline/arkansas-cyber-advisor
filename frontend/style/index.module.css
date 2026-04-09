@@ -1,34 +1,224 @@
-/*
-    TODO: Make the website pretty. (Maybe a dark theme to save our eyes?)
-*/
-
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
 body {
-    background-color: #202020;
-    color: white;
-    font-family: 'Times New Roman', Times, serif;
-   
+    background-color: #eaeaea;
+    color: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+}
+
+#app {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-height: 100vh;
+    padding: 40px 24px;
 }
 
-h2 {
-    font-family: 'Playfair Display', 'Times New Roman', Times, serif;
-    font-size: 40px;
+/* Top spacer — pushes input toward center in empty state */
+#welcome-screen {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 32px;
+}
+
+/* Bottom spacer — balances top spacer so input is truly centered */
+#bottom-spacer {
+    flex: 1;
+}
+
+/* Once messages exist: hide welcome, hide spacers, pin input to bottom */
+#app:has(#conversation:not(:empty)) #welcome-screen {
+    display: none;
+}
+
+#app:has(#conversation:not(:empty)) #bottom-spacer {
+    display: none;
+}
+
+#app:has(#conversation:not(:empty)) #input-wrapper {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: none;
+    display: flex;
+    justify-content: center;
+    padding: 12px 24px 24px;
+    background: linear-gradient(to bottom, transparent, #ede8dd 40%);
+}
+
+#app:has(#conversation:not(:empty)) #input-wrapper form {
+    width: 100%;
+    max-width: 680px;
+}
+
+#app:has(#conversation:not(:empty)) {
+    padding-bottom: 100px;
+}
+
+#welcome-screen h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
     font-weight: 500;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+
 }
 
-main {
+
+/* Conversation */
+#conversation {
+    width: 100%;
+    max-width: 680px;
     display: flex;
     flex-direction: column;
-    width: 800px;
+    gap: 20px;
+    padding-bottom: 24px;
+}
+
+/* Input area */
+#input-wrapper {
+    width: 100%;
+    max-width: 680px;
+}
+
+.input-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 10px;
+}
+
+#msgInput {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #1a1a1a;
+    background: transparent;
+    font-family: inherit;
+}
+
+#msgInput::placeholder {
+    color: #a3a3a3;
+}
+
+#msgSubmit {
+    background: #1a1a1a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+#msgSubmit:hover {
+    background: #333333;
+}
+
+#msgSubmit:disabled {
+    background: #d1d5db;
+    cursor: default;
+}
+
+/* Chat bubbles */
+.chatBubble {
+    max-width: 88%;
+    line-height: 1.65;
+    font-size: 15px;
 }
 
 .client {
     align-self: flex-end;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px 18px 4px 18px;
+    padding: 10px 16px;
 }
 
 .ai {
     align-self: flex-start;
+    color: #1a1a1a;
+}
+
+/* Markdown styles inside AI responses */
+.ai h1, .ai h2, .ai h3, .ai h4 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    margin: 14px 0 6px;
+    line-height: 1.3;
+}
+
+.ai h1 { font-size: 22px; }
+.ai h2 { font-size: 19px; }
+.ai h3 { font-size: 16px; }
+
+.ai p {
+    margin-bottom: 10px;
+}
+
+.ai p:last-child {
+    margin-bottom: 0;
+}
+
+.ai ul, .ai ol {
+    padding-left: 22px;
+    margin-bottom: 10px;
+}
+
+.ai li {
+    margin-bottom: 4px;
+}
+
+.ai code {
+    background: rgba(0, 0, 0, 0.07);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.ai pre {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 14px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin-bottom: 10px;
+}
+
+.ai pre code {
+    background: none;
+    padding: 0;
+    font-size: 13px;
+}
+
+.ai strong {
+    font-weight: 600;
+}
+
+.ai blockquote {
+    border-left: 3px solid #c8634a;
+    padding-left: 12px;
+    color: #555;
+    margin: 8px 0;
 }

@@ -6,27 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arkansas Cyber AI</title>
 
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="module" src="./js/input-processor.js"></script>
 
     <link rel="stylesheet" href="./style/index.module.css">
-
 </head>
 
 <body>
-    <h2>Arkansas Cyber AI</h2>
-    <p>Hello World! It's good to see you!</p>
+    <div id="app">
 
-    <!--This is where our chat bubbles will be displayed-->
-    <main id="conversation">
+        <div id="welcome-screen">
+            <h1>
+                Arkansas Cyber Advisor
+            </h1>
+        </div>
 
-    </main>
+        <!--This is where our chat bubbles will be displayed-->
+        <main id="conversation"></main>
 
-    <!--User input-->
-    <form>
-        <input type="text" name="message" id="msgInput">
-        <button type="submit" id="msgSubmit">Send</button>
-    </form>
+        <!--User input-->
+        <div id="input-wrapper">
+            <form id="chat-form">
+                <div class="input-card">
+                    <input type="text" id="msgInput" placeholder="How can I help you today?" autocomplete="off">
+                    <button type="submit" id="msgSubmit" aria-label="Send">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="19" x2="12" y2="5"/>
+                            <polyline points="5 12 12 5 19 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
 
+        <div id="bottom-spacer"></div>
+
+    </div>
 </body>
 
 </html>

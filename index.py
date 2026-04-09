@@ -30,7 +30,8 @@ def stream():
             for chunk in chunks:
                 piece = chunk.get("message", {}).get("content", "")
                 if piece:
-                    yield f"data: {piece}\n\n"
+                    formatted = piece.replace('\n', '\ndata: ')
+                    yield f"data: {formatted}\n\n"
 
             yield "data: [DONE]\n\n"
 
