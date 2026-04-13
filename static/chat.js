@@ -177,16 +177,18 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
             break;
           }
           try {
-            const { token } = JSON.parse(payload);
-            ensureStreamBubble();
-            fullContent += token;
-            const processed = processThinkTags(fullContent);
-            if (processed.thinking) {
-              thinkingEl.textContent = processed.thinking;
+            const { token, thinking_token } = JSON.parse(payload);
+            if (thinking_token !== undefined) {
+              ensureStreamBubble();
+              thinkingEl.textContent += thinking_token;
               const toggle = thinkingEl.closest('.reasoning-block')?.querySelector('.reasoning-toggle');
               if (toggle) toggle.style.display = 'inline-flex';
             }
-            mainEl.innerHTML = marked.parse(processed.main || '');
+            if (token !== undefined) {
+              ensureStreamBubble();
+              fullContent += token;
+              mainEl.innerHTML = marked.parse(fullContent);
+            }
           } catch {}
         }
         scrollToBottom(messagesEl);
@@ -221,9 +223,9 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function processThinkTags(raw) {
-  const m = raw.match(/^<think>([\s\S]*?)(<\/think>|$)/);
+  const m = raw.match(/^\s*<think>([\s\S]*?)(<\/think>|$)/i);
   if (!m) return { thinking: '', main: raw };
-  return { thinking: m[1], main: raw.slice(m[0].length) };
+  return { thinking: m[1].trim(), main: raw.slice(m[0].length).trimStart() };
 }
 
 function appendMessage(container, role, content) {

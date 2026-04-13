@@ -1,4 +1,5 @@
 import json
+import re
 import ollama
 from flask import Blueprint, request, jsonify, Response, stream_with_context, current_app
 from flask_login import current_user
@@ -44,7 +45,8 @@ def generate_title():
             keep_alive='30m',
             options={'num_ctx': 512},
         )
-        title = res.message.content.strip().strip('"\'').rstrip('.')[:80]
+        content = re.sub(r'<think>[\s\S]*?</think>', '', res.message.content, flags=re.IGNORECASE).strip()
+        title = content.strip('"\'').rstrip('.')[:80]
         return jsonify({'title': title}), 200
     except Exception as e:
         return jsonify({'title': ''}), 200
@@ -82,11 +84,14 @@ def stream():
                 model=model,
                 messages=messages,
                 stream=True,
-                think=False,
+                think=True,
                 keep_alive='30m',
                 options={'num_ctx': 2048},
             ):
-                content = chunk.message.content
+                thinking = chunk.message.thinking
+                content  = chunk.message.content
+                if thinking:
+                    yield f'data: {json.dumps({"thinking_token": thinking})}\n\n'
                 if content:
                     full_response.append(content)
                     yield f'data: {json.dumps({"token": content})}\n\n'
