@@ -7,7 +7,7 @@ function renderLogin(router) {
       <div class="form-error" id="login-error" style="display:none"></div>
       <div class="field"><label>Email</label><input type="email" id="login-email" autocomplete="email" /></div>
       <div class="field"><label>Password</label><input type="password" id="login-pass" autocomplete="current-password" /></div>
-      <button class="btn btn-primary" style="width:100%" id="login-btn">Sign In</button>
+      <button class="auth-submit" id="login-btn">Sign In</button>
       <div class="auth-link">No account? <a href="#/register">Create one</a></div>
     </div>
   `;
@@ -46,7 +46,7 @@ function renderRegister(router) {
       <div class="form-error" id="reg-error" style="display:none"></div>
       <div class="field"><label>Email</label><input type="email" id="reg-email" autocomplete="email" /></div>
       <div class="field"><label>Password <span style="color:var(--text-muted);font-size:12px">(min 8 characters)</span></label><input type="password" id="reg-pass" autocomplete="new-password" /></div>
-      <button class="btn btn-primary" style="width:100%" id="reg-btn">Create Account</button>
+      <button class="auth-submit" id="reg-btn">Create Account</button>
       <div class="auth-link">Already have an account? <a href="#/login">Sign in</a></div>
     </div>
   `;

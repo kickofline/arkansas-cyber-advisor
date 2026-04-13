@@ -8,19 +8,21 @@ const SCENARIOS = [
 
 function renderHome(router) {
   const el = document.createElement('div');
-  el.className = 'home';
+  el.className = 'home-wrap';
   el.innerHTML = `
-    <h2>Arkansas Cyber Advisor</h2>
-    <p class="subtitle">Free cybersecurity guidance for every Arkansas resident — no technical background needed.</p>
-    <div class="scenario-grid">
-      ${SCENARIOS.map((s, i) => `
-        <div class="scenario-card" data-i="${i}">
-          <div class="icon">${s.icon}</div>
-          <div class="label">${s.label}</div>
-        </div>
-      `).join('')}
+    <div class="home">
+      <h2>Arkansas Cyber Advisor</h2>
+      <p class="subtitle">Free cybersecurity guidance for every Arkansas resident — no technical background needed.</p>
+      <div class="scenario-grid">
+        ${SCENARIOS.map((s, i) => `
+          <div class="scenario-card" data-i="${i}">
+            <div class="icon">${s.icon}</div>
+            <div class="label">${s.label}</div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="home-start-btn" id="home-new-chat">+ Start a new conversation</button>
     </div>
-    <button class="btn btn-primary new-chat-btn" id="home-new-chat">Start a new conversation</button>
   `;
 
   el.querySelectorAll('.scenario-card').forEach(card => {

@@ -2,39 +2,59 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
   const main = document.getElementById('main');
   main.innerHTML = `
     <div class="chat-view">
+      <div class="chat-header">
+        <span class="chat-title" id="chat-title"></span>
+      </div>
       <div class="messages" id="messages"></div>
-      <div class="input-area">
-        <div class="input-row">
-          <textarea id="msg-input" rows="1" placeholder="Ask a cybersecurity question…"></textarea>
-          <button class="send-btn" id="send-btn" title="Send">&#9658;</button>
+    </div>
+    <div class="input-wrap">
+      <div class="input-card">
+        <textarea id="msg-input" rows="1" placeholder="Reply…"></textarea>
+        <div class="input-card-footer">
+          <button class="input-add-btn" title="Attach">+</button>
+          <div class="input-card-right">
+            <span class="model-label">Cyber Advisor</span>
+            <button class="send-btn" id="send-btn" title="Send">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="14" x2="8" y2="2"/><polyline points="3 7 8 2 13 7"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
+      <div class="input-disclaimer">Cyber Advisor can make mistakes. Always verify important security information.</div>
     </div>
   `;
 
-  const messagesEl = document.getElementById('messages');
-  const inputEl    = document.getElementById('msg-input');
-  const sendBtn    = document.getElementById('send-btn');
+  const messagesEl  = document.getElementById('messages');
+  const inputEl     = document.getElementById('msg-input');
+  const sendBtn     = document.getElementById('send-btn');
+  const titleEl     = document.getElementById('chat-title');
 
   // Load history
   let history = [];
+  let chatTitle = '';
   if (chatId) {
     if (State.user) {
       const { data, ok } = await API.getChat(chatId);
-      if (ok) history = data.messages || [];
+      if (ok) {
+        history   = data.messages || [];
+        chatTitle = data.chat?.title || '';
+      }
     } else {
       const chat = LocalChats.get(chatId);
-      if (chat) history = chat.messages || [];
+      if (chat) { history = chat.messages || []; chatTitle = chat.title || ''; }
     }
   }
 
+  if (titleEl) titleEl.textContent = chatTitle || 'New conversation';
   history.forEach(m => appendMessage(messagesEl, m.role, m.content));
   scrollToBottom(messagesEl);
 
   // Auto-resize textarea
   inputEl.addEventListener('input', () => {
     inputEl.style.height = 'auto';
-    inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
   });
 
   inputEl.addEventListener('keydown', e => {
@@ -59,11 +79,13 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         const { data } = await API.createChat(title);
         activeChatId = data.id;
         chatId = activeChatId;
+        if (titleEl) titleEl.textContent = title;
         router.navigate(`/chat/${activeChatId}`);
       } else {
         const chat = LocalChats.create(title);
         activeChatId = chat.id;
         chatId = activeChatId;
+        if (titleEl) titleEl.textContent = title;
         router.navigate(`/chat/${activeChatId}`);
       }
       refreshChatList(router, activeChatId);
@@ -79,11 +101,11 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     appendMessage(messagesEl, 'user', text);
     history.push({ role: 'user', content: text });
 
-    // Show typing indicator
+    // Typing indicator (asterisk)
     const typingEl = appendTyping(messagesEl);
     scrollToBottom(messagesEl);
 
-    // Start streaming
+    // Replace typing with streaming message
     const { bubble, thinkingEl, mainEl } = appendStreamingMessage(messagesEl, typingEl);
     scrollToBottom(messagesEl);
 
@@ -102,7 +124,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         }),
       });
 
-      const reader = res.body.getReader();
+      const reader  = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = '';
 
@@ -133,14 +155,15 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
             const processed = processThinkTags(fullContent);
             if (processed.thinking) {
               thinkingEl.textContent = processed.thinking;
-              thinkingEl.closest('.reasoning-block')?.querySelector('.reasoning-toggle')?.style.setProperty('display', 'block');
+              const toggle = thinkingEl.closest('.reasoning-block')?.querySelector('.reasoning-toggle');
+              if (toggle) toggle.style.display = 'inline-flex';
             }
             mainEl.innerHTML = marked.parse(processed.main || '');
           } catch {}
         }
         scrollToBottom(messagesEl);
       }
-    } catch (err) {
+    } catch {
       showStreamError(bubble, 'Could not reach the AI. Please try again.', () => {
         history.pop();
         State.streaming = false;
@@ -150,36 +173,32 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
       });
     }
 
-    if (!State.user && fullContent) {
-      LocalChats.addMessage(activeChatId, 'assistant', fullContent);
-    }
+    if (!State.user && fullContent) LocalChats.addMessage(activeChatId, 'assistant', fullContent);
     if (fullContent) history.push({ role: 'assistant', content: fullContent });
 
     State.streaming = false;
     sendBtn.disabled = false;
-    scenarioPrompt = null; // only use on first message
+    scenarioPrompt = null;
   }
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 function processThinkTags(raw) {
-  const thinkMatch = raw.match(/^<think>([\s\S]*?)(<\/think>|$)/);
-  if (!thinkMatch) return { thinking: '', main: raw };
-  const thinking = thinkMatch[1];
-  const rest = raw.slice(thinkMatch[0].length);
-  return { thinking, main: rest };
+  const m = raw.match(/^<think>([\s\S]*?)(<\/think>|$)/);
+  if (!m) return { thinking: '', main: raw };
+  return { thinking: m[1], main: raw.slice(m[0].length) };
 }
 
 function appendMessage(container, role, content) {
-  const wrap = document.createElement('div');
+  const wrap   = document.createElement('div');
   wrap.className = `message ${role}`;
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
 
   if (role === 'assistant') {
     const processed = processThinkTags(content);
-    if (processed.thinking) {
-      bubble.appendChild(makeThinkBlock(processed.thinking));
-    }
+    if (processed.thinking) bubble.appendChild(makeThinkBlock(processed.thinking));
     const mainEl = document.createElement('div');
     mainEl.innerHTML = marked.parse(processed.main || '');
     bubble.appendChild(mainEl);
@@ -194,17 +213,18 @@ function appendMessage(container, role, content) {
 
 function appendStreamingMessage(container, typingEl) {
   typingEl.remove();
-  const wrap = document.createElement('div');
+  const wrap   = document.createElement('div');
   wrap.className = 'message assistant';
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
 
+  // Reasoning block (hidden until thinking content arrives)
   const reasoningBlock = document.createElement('div');
   reasoningBlock.className = 'reasoning-block';
   const toggleEl = document.createElement('div');
   toggleEl.className = 'reasoning-toggle';
-  toggleEl.textContent = '▶ Show reasoning';
   toggleEl.style.display = 'none';
+  toggleEl.textContent = '▶ Show reasoning';
   const thinkingEl = document.createElement('div');
   thinkingEl.className = 'reasoning-content';
 
@@ -225,8 +245,8 @@ function appendStreamingMessage(container, typingEl) {
 }
 
 function makeThinkBlock(thinkText) {
-  const wrap = document.createElement('div');
-  const toggle = document.createElement('div');
+  const wrap    = document.createElement('div');
+  const toggle  = document.createElement('div');
   toggle.className = 'reasoning-toggle';
   toggle.textContent = '▶ Show reasoning';
   const content = document.createElement('div');
@@ -242,9 +262,12 @@ function makeThinkBlock(thinkText) {
 }
 
 function appendTyping(container) {
-  const wrap = document.createElement('div');
+  const wrap   = document.createElement('div');
   wrap.className = 'message assistant';
-  wrap.innerHTML = '<div class="bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<span class="typing-asterisk">✳</span>';
+  wrap.appendChild(bubble);
   container.appendChild(wrap);
   return wrap;
 }
