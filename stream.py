@@ -41,12 +41,11 @@ def generate_title():
                 ),
             }],
             stream=False,
-            think=False,
+            think=True,
             keep_alive='30m',
             options={'num_ctx': 512},
         )
-        content = re.sub(r'<think>[\s\S]*?</think>', '', res.message.content, flags=re.IGNORECASE).strip()
-        title = content.strip('"\'').rstrip('.')[:80]
+        title = (res.message.content or '').strip().strip('"\'').rstrip('.')[:80]
         return jsonify({'title': title}), 200
     except Exception as e:
         return jsonify({'title': ''}), 200

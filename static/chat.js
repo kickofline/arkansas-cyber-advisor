@@ -132,6 +132,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     scrollToBottom(messagesEl);
 
     let fullContent = '';
+    let thinkingContent = '';
     let bubble = null, thinkingEl = null, mainEl = null;
 
     function ensureStreamBubble() {
@@ -179,13 +180,15 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           try {
             const { token, thinking_token } = JSON.parse(payload);
             if (thinking_token !== undefined) {
-              ensureStreamBubble();
-              thinkingEl.textContent += thinking_token;
-              const toggle = thinkingEl.closest('.reasoning-block')?.querySelector('.reasoning-toggle');
-              if (toggle) toggle.style.display = 'inline-flex';
+              thinkingContent += thinking_token;
             }
             if (token !== undefined) {
               ensureStreamBubble();
+              if (thinkingContent && !thinkingEl.innerHTML) {
+                thinkingEl.innerHTML = marked.parse(thinkingContent);
+                const toggle = thinkingEl.closest('.reasoning-block')?.querySelector('.reasoning-toggle');
+                if (toggle) toggle.style.display = 'inline-flex';
+              }
               fullContent += token;
               mainEl.innerHTML = marked.parse(fullContent);
             }
