@@ -49,10 +49,11 @@ services:
     #     capabilities: ["gpu"]
 
     networks:
-      - ollama-docker
+      - internal
 
 networks:
   internal:
+    external: false
 
 volumes:
   db_data:
