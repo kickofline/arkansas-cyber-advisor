@@ -3,15 +3,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_ollama_host = os.environ.get('OLLAMA_URL', 'localhost')
-
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-change-in-prod')
-    DATABASE = os.environ.get('DATABASE', 'cyber_advisor.db')
-    OLLAMA_HOST = _ollama_host
-    OLLAMA_BASE_URL = f'http://{_ollama_host}:11434'
-    OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'gpt-oss:20b')
-    TESTING = False
+    SECRET_KEY          = os.environ.get('SECRET_KEY', 'dev-secret-change-in-prod')
+    DATABASE            = os.environ.get('DATABASE', 'cyber_advisor.db')
+    OLLAMA_BASE_URL     = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
+    OLLAMA_MODEL        = os.environ.get('OLLAMA_MODEL', 'skynet')
+    TESTING             = False
+
+    # Cookie security — set FLASK_ENV=production in prod
+    _prod = os.environ.get('FLASK_ENV') == 'production'
+    SESSION_COOKIE_SECURE   = _prod
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
 
 class TestConfig(Config):
     TESTING = True

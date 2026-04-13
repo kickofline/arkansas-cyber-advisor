@@ -1,0 +1,21 @@
+[Unit]
+Description=Arkansas Cyber Advisor
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/cyber-advisor
+EnvironmentFile=/opt/cyber-advisor/.env
+ExecStart=/opt/cyber-advisor/.venv/bin/gunicorn \
+    --worker-class gevent \
+    --workers 2 \
+    --worker-connections 100 \
+    --bind 127.0.0.1:8000 \
+    --timeout 120 \
+    --access-logfile - \
+    wsgi:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

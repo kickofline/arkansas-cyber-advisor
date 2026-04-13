@@ -52,6 +52,22 @@ def get_chat(chat_id):
     return jsonify({'chat': dict(chat), 'messages': [dict(m) for m in messages]})
 
 
+@bp.route('/chats/<chat_id>', methods=['PATCH'])
+@login_required
+def update_chat(chat_id):
+    db = get_db()
+    if not db.execute(
+        'SELECT id FROM chats WHERE id = ? AND user_id = ?', [chat_id, current_user.id]
+    ).fetchone():
+        return jsonify({'error': 'Not found'}), 404
+    data = request.get_json() or {}
+    title = (data.get('title') or '')[:100]
+    if title:
+        db.execute('UPDATE chats SET title = ? WHERE id = ?', [title, chat_id])
+        db.commit()
+    return jsonify({'ok': True})
+
+
 @bp.route('/chats/<chat_id>/messages', methods=['POST'])
 @login_required
 def add_message(chat_id):

@@ -11,8 +11,10 @@
       main.appendChild(renderHome(router));
     })
     .on('/chat', () => {
+      const scenario = sessionStorage.getItem('pending_scenario') || null;
+      sessionStorage.removeItem('pending_scenario');
       renderSidebar(router, null);
-      renderChat(router, null, null);
+      renderChat(router, null, scenario);
     })
     .on('/chat/:id', ({ id }) => {
       const scenario = sessionStorage.getItem('pending_scenario') || null;

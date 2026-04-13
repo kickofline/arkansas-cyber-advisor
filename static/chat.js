@@ -1,3 +1,4 @@
+
 async function renderChat(router, chatId, scenarioPrompt = null) {
   const main = document.getElementById('main');
   main.innerHTML = `
@@ -6,23 +7,25 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         <span class="chat-title" id="chat-title"></span>
       </div>
       <div class="messages" id="messages"></div>
-    </div>
-    <div class="input-wrap">
-      <div class="input-card">
-        <textarea id="msg-input" rows="1" placeholder="Reply…"></textarea>
-        <div class="input-card-footer">
-          <button class="input-add-btn" title="Attach">+</button>
-          <div class="input-card-right">
-            <span class="model-label">Cyber Advisor</span>
-            <button class="send-btn" id="send-btn" title="Send">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="8" y1="14" x2="8" y2="2"/><polyline points="3 7 8 2 13 7"/>
-              </svg>
-            </button>
+      <div class="input-wrap">
+        <div class="input-card">
+          <textarea id="msg-input" rows="1" placeholder="How can I help?"></textarea>
+          <div class="input-card-footer">
+            <div class="input-card-right">
+              <span class="model-label">Cyber Advisor</span>
+              <button class="send-btn" id="send-btn" title="Send">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="14" x2="8" y2="2"/><polyline points="3 7 8 2 13 7"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
+        <div class="prompt-chips" id="prompt-chips">
+          ${PROMPTS.map(p => `<button class="prompt-chip" data-text="${escHtml(p.text)}">${escHtml(p.label)}</button>`).join('')}
+        </div>
+        <div class="input-disclaimer">Cyber Advisor can make mistakes. Always verify important security information.</div>
       </div>
-      <div class="input-disclaimer">Cyber Advisor can make mistakes. Always verify important security information.</div>
     </div>
   `;
 
@@ -62,6 +65,28 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
   });
   sendBtn.addEventListener('click', sendMessage);
 
+  document.querySelectorAll('.prompt-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      inputEl.value = chip.dataset.text;
+      sendMessage();
+    });
+  });
+
+  async function generateAndSetTitle(id, firstMessage) {
+    try {
+      const { data } = await API.generateTitle(firstMessage);
+      const title = data?.title;
+      if (!title) return;
+      if (State.user) {
+        await API.renameChat(id, title);
+      } else {
+        LocalChats.rename(id, title);
+      }
+      if (titleEl) titleEl.textContent = title;
+      refreshChatList(router, id);
+    } catch {}
+  }
+
   async function sendMessage() {
     const text = inputEl.value.trim();
     if (!text || State.streaming) return;
@@ -71,6 +96,8 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     sendBtn.disabled = true;
     State.streaming = true;
 
+    const isFirstMessage = history.length === 0;
+
     // Ensure chat exists
     let activeChatId = chatId;
     if (!activeChatId) {
@@ -79,15 +106,14 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         const { data } = await API.createChat(title);
         activeChatId = data.id;
         chatId = activeChatId;
-        if (titleEl) titleEl.textContent = title;
-        router.navigate(`/chat/${activeChatId}`);
       } else {
         const chat = LocalChats.create(title);
         activeChatId = chat.id;
         chatId = activeChatId;
-        if (titleEl) titleEl.textContent = title;
-        router.navigate(`/chat/${activeChatId}`);
       }
+      if (titleEl) titleEl.textContent = title;
+      // Update URL without re-rendering the page
+      window.history.replaceState(null, '', `#/chat/${activeChatId}`);
       refreshChatList(router, activeChatId);
     }
 
@@ -101,15 +127,16 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     appendMessage(messagesEl, 'user', text);
     history.push({ role: 'user', content: text });
 
-    // Typing indicator (asterisk)
+    // Show thinking indicator until first token arrives
     const typingEl = appendTyping(messagesEl);
     scrollToBottom(messagesEl);
 
-    // Replace typing with streaming message
-    const { bubble, thinkingEl, mainEl } = appendStreamingMessage(messagesEl, typingEl);
-    scrollToBottom(messagesEl);
-
     let fullContent = '';
+    let bubble = null, thinkingEl = null, mainEl = null;
+
+    function ensureStreamBubble() {
+      if (!bubble) ({ bubble, thinkingEl, mainEl } = appendStreamingMessage(messagesEl, typingEl));
+    }
 
     try {
       const res = await fetch('/api/stream', {
@@ -120,7 +147,6 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           message: text,
           chat_id: State.user ? activeChatId : null,
           history: history.slice(0, -1),
-          scenario_prompt: scenarioPrompt,
         }),
       });
 
@@ -140,6 +166,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           const payload = line.slice(6).trim();
           if (payload === '[DONE]') break;
           if (payload.startsWith('[ERROR]')) {
+            ensureStreamBubble();
             showStreamError(bubble, payload.slice(7).trim() || 'Could not reach the AI.', () => {
               history.pop();
               State.streaming = false;
@@ -151,6 +178,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           }
           try {
             const { token } = JSON.parse(payload);
+            ensureStreamBubble();
             fullContent += token;
             const processed = processThinkTags(fullContent);
             if (processed.thinking) {
@@ -164,6 +192,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         scrollToBottom(messagesEl);
       }
     } catch {
+      ensureStreamBubble();
       showStreamError(bubble, 'Could not reach the AI. Please try again.', () => {
         history.pop();
         State.streaming = false;
@@ -176,9 +205,16 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     if (!State.user && fullContent) LocalChats.addMessage(activeChatId, 'assistant', fullContent);
     if (fullContent) history.push({ role: 'assistant', content: fullContent });
 
+    if (fullContent && isFirstMessage) generateAndSetTitle(activeChatId, text);
+
     State.streaming = false;
     sendBtn.disabled = false;
-    scenarioPrompt = null;
+  }
+
+  // Auto-send scenario prompt as first user message
+  if (scenarioPrompt && history.length === 0) {
+    inputEl.value = scenarioPrompt;
+    sendMessage();
   }
 }
 
@@ -266,7 +302,7 @@ function appendTyping(container) {
   wrap.className = 'message assistant';
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
-  bubble.innerHTML = '<span class="typing-asterisk">✳</span>';
+  bubble.innerHTML = '<div class="thinking-dots"><span></span><span></span><span></span></div>';
   wrap.appendChild(bubble);
   container.appendChild(wrap);
   return wrap;

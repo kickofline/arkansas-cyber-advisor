@@ -1,9 +1,16 @@
+const APP_LOGO_SVG = `<svg class="app-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 3L5 6.5V12c0 4.2 3 8.2 7 9.5 4-1.3 7-5.3 7-9.5V6.5L12 3z" fill="currentColor"/>
+  <path d="M9.5 12l1.8 1.8 3.2-3.2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
 async function renderSidebar(router, activeChatId = null) {
   const sidebar = document.getElementById('sidebar');
   sidebar.innerHTML = `
     <div class="sb-brand">
-      <span class="sb-logo">✳</span>
-      <span class="sb-brand-name">Cyber Advisor</span>
+      <a href="#/" class="sb-brand-link">
+        ${APP_LOGO_SVG}
+        <span class="sb-brand-name">Arkansas Cyber Advisor</span>
+      </a>
     </div>
     <nav class="sb-nav">
       <button class="sb-nav-btn" id="sb-new-chat">
@@ -74,8 +81,7 @@ function renderFooter(router) {
     footer.querySelector('#sb-logout').addEventListener('click', async e => {
       e.preventDefault();
       await API.logout();
-      State.user = null;
-      router.navigate('/');
+      window.location.reload();
     });
   } else {
     footer.innerHTML = `

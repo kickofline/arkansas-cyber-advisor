@@ -20,6 +20,36 @@ def get_ollama_client():
     return ollama.Client(host=base_url)
 
 
+@bp.route('/title', methods=['POST'])
+def generate_title():
+    data    = request.get_json() or {}
+    message = (data.get('message') or '').strip()[:300]
+    if not message:
+        return jsonify({'title': ''}), 200
+    try:
+        client = get_ollama_client()
+        model  = current_app.config['OLLAMA_MODEL']
+        res    = client.chat(
+            model=model,
+            messages=[{
+                'role': 'user',
+                'content': (
+                    'Write a short title (3–5 words) for a conversation that begins with this message. '
+                    'Reply with the title only — no quotes, no punctuation at the end.\n\n'
+                    f'Message: {message}'
+                ),
+            }],
+            stream=False,
+            think=False,
+            keep_alive='30m',
+            options={'num_ctx': 512},
+        )
+        title = res.message.content.strip().strip('"\'').rstrip('.')[:80]
+        return jsonify({'title': title}), 200
+    except Exception as e:
+        return jsonify({'title': ''}), 200
+
+
 @bp.route('/stream', methods=['POST'])
 def stream():
     data = request.get_json() or {}
@@ -48,11 +78,18 @@ def stream():
         full_response = []
         try:
             client = get_ollama_client()
-            for chunk in client.chat(model=model, messages=messages, stream=True):
-                token = chunk.message.content
-                if token:
-                    full_response.append(token)
-                    yield f'data: {json.dumps({"token": token})}\n\n'
+            for chunk in client.chat(
+                model=model,
+                messages=messages,
+                stream=True,
+                think=False,
+                keep_alive='30m',
+                options={'num_ctx': 2048},
+            ):
+                content = chunk.message.content
+                if content:
+                    full_response.append(content)
+                    yield f'data: {json.dumps({"token": content})}\n\n'
 
             # DB write happens AFTER all tokens are yielded
             if is_auth and chat_id:

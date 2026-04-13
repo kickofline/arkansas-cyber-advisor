@@ -18,6 +18,8 @@ const API = {
   createChat:   (title)         => API.post('/api/chats', { title }),
   getChat:      (id)            => API.get(`/api/chats/${id}`),
   addMessage:   (chatId, role, content) => API.post(`/api/chats/${chatId}/messages`, { role, content }),
+  renameChat:   (id, title)     => API._req('PATCH', `/api/chats/${id}`, { title }),
+  generateTitle:(message)       => API.post('/api/title', { message }),
   migrate:      (chats)         => API.post('/api/migrate', { chats }),
 };
 
@@ -48,6 +50,12 @@ const LocalChats = {
     if (!chat) return;
     chat.messages.push({ role, content, created_at: new Date().toISOString() });
     this._save(all);
+  },
+
+  rename(id, title) {
+    const all = this.all();
+    const chat = all.find(c => c.id === id);
+    if (chat) { chat.title = title; this._save(all); }
   },
 
   clear() { localStorage.removeItem(this._KEY); },
