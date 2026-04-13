@@ -1,65 +1,132 @@
 import { appendBubble } from './chat-bubble-maker.js';
+import { getActiveChatId, createNewChat, navigateToChat, refreshSidebar, init as initChats } from './chat-manager.js';
 
-let msg = document.getElementById("msgInput")
-let submit = document.getElementById("msgSubmit")
+// ── Shared streaming logic ────────────────────────────────────────────────────
 
-/**
- * Replaces sussy XSS vectors with safer representations 
- * @param {string} string The string to sanitize for anti-XSS
- * @returns The sanitized string
- */
-function sanitize(string) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#x27;',
-        "/": '&#x2F;',
-    };
-    const reg = /[&<>"'/]/ig;
-    return string.replace(reg, (match) => (map[match]));
-}
+async function sendMessage(raw, chatId) {
+    const conversation = document.getElementById('conversation');
 
-function update_msg_bubble() {
+    appendBubble(raw, false);
 
-}
+    const wrapper = document.createElement('div');
+    wrapper.className = 'ai-message-wrapper';
+    conversation.appendChild(wrapper);
 
-submit.onclick = function () {
-    console.log(`Sanitized content: ${sanitize(msg.value)}`)
+    const thinkingBlock = document.createElement('details');
+    thinkingBlock.className = 'thinking-block';
+    thinkingBlock.open = true;
+    const thinkingSummary = document.createElement('summary');
+    thinkingSummary.textContent = 'Thinking...';
+    const thinkingBody = document.createElement('div');
+    thinkingBody.className = 'thinking-body';
+    thinkingBlock.appendChild(thinkingSummary);
+    thinkingBlock.appendChild(thinkingBody);
 
-    const text = sanitize(msg.value).trim()
-    if (!text) {
-        console.log("text empty......")
-        return
-    };
+    const aiBubble = document.createElement('p');
+    aiBubble.className = 'chatBubble ai';
+    wrapper.appendChild(aiBubble);
 
-    submit.disabled = true
-    const userBubble = appendBubble(msg.value, false)
+    let fullText = '';
+    let fullThinking = '';
+    let thinkingVisible = false;
+    let thinkingDone = false;
 
-    msg.value = ""
+    try {
+        const response = await fetch('/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q: raw, chat_id: chatId })
+        });
 
-    const es = new EventSource("/stream?q=" + encodeURIComponent(text))
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
 
-    const aiBubble = appendBubble("", true)
-    let fullText = ""
-
-    es.onmessage = (ev) => {
-        if (ev.data === "[DONE]") {
-            es.close()
-            submit.disabled = false
-            msg.focus()
-            return;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop();
+            for (const line of lines) {
+                if (!line.trim()) continue;
+                const event = JSON.parse(line);
+                if (event.done) {
+                    if (thinkingVisible) {
+                        thinkingBlock.open = false;
+                        thinkingSummary.textContent = 'Reasoned';
+                    }
+                    await refreshSidebar();
+                } else if (event.thinking) {
+                    if (!thinkingVisible) {
+                        thinkingVisible = true;
+                        wrapper.insertBefore(thinkingBlock, aiBubble);
+                    }
+                    fullThinking += event.thinking;
+                    thinkingBody.textContent = fullThinking;
+                } else if (event.text) {
+                    if (thinkingVisible && !thinkingDone) {
+                        thinkingDone = true;
+                        thinkingBlock.open = false;
+                        thinkingSummary.textContent = 'Reasoned';
+                    }
+                    fullText += event.text;
+                    aiBubble.innerHTML = marked.parse(fullText);
+                } else if (event.error) {
+                    aiBubble.textContent = `[error: ${event.error}]`;
+                }
+            }
         }
-
-        fullText += ev.data
-        aiBubble.innerHTML = marked.parse(fullText)
+    } catch (err) {
+        aiBubble.textContent = '[stream error]';
     }
-
-    es.onerror = () => {
-        es.close()
-        aiBubble.innerHTML += "\n\n [[STREAM ERROR]]"
-        submit.disabled = false
-
-    }// TODO: Make request to AI agent located in the cyberlab
 }
+
+// ── Home form ─────────────────────────────────────────────────────────────────
+
+const homeForm = document.getElementById('home-form');
+const homeInput = document.getElementById('homeInput');
+const homeSubmit = document.getElementById('homeSubmit');
+
+document.querySelectorAll('.suggestion').forEach(btn => {
+    btn.onclick = () => {
+        homeInput.value = btn.dataset.prompt;
+        homeForm.requestSubmit();
+    };
+});
+
+homeForm.onsubmit = async function (e) {
+    e.preventDefault();
+    const raw = homeInput.value.trim();
+    if (!raw) return;
+    homeSubmit.disabled = true;
+    homeInput.value = '';
+    const chatId = await createNewChat();
+    await sendMessage(raw, chatId);
+    homeSubmit.disabled = false;
+};
+
+// ── Chat form ─────────────────────────────────────────────────────────────────
+
+const chatForm = document.getElementById('chat-form');
+const msgInput = document.getElementById('msgInput');
+const msgSubmit = document.getElementById('msgSubmit');
+
+document.getElementById('new-chat-btn').onclick = () => createNewChat();
+
+chatForm.onsubmit = async function (e) {
+    e.preventDefault();
+    const chatId = getActiveChatId();
+    if (!chatId) return;
+    const raw = msgInput.value.trim();
+    if (!raw) return;
+    msgSubmit.disabled = true;
+    msgInput.value = '';
+    await sendMessage(raw, chatId);
+    msgSubmit.disabled = false;
+    msgInput.focus();
+};
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+initChats();

@@ -15,31 +15,58 @@
 <body>
     <div id="app">
 
-        <div id="welcome-screen">
-            <h1>
-                Arkansas Cyber Advisor
-            </h1>
-        </div>
+        <!-- Route: / -->
+        <div id="home-view">
+            <div id="welcome-content">
+                <h1>Arkansas Cyber Advisor</h1>
+                <p class="welcome-subtitle">Ask anything about cybersecurity — for Arkansas students and professionals.</p>
 
-        <!--This is where our chat bubbles will be displayed-->
-        <main id="conversation"></main>
-
-        <!--User input-->
-        <div id="input-wrapper">
-            <form id="chat-form">
-                <div class="input-card">
-                    <input type="text" id="msgInput" placeholder="How can I help you today?" autocomplete="off">
-                    <button type="submit" id="msgSubmit" aria-label="Send">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="19" x2="12" y2="5"/>
-                            <polyline points="5 12 12 5 19 12"/>
-                        </svg>
-                    </button>
+                <div id="suggestions">
+                    <button class="suggestion" data-prompt="What are the most common cyberattacks targeting small businesses?">Common attacks on small businesses</button>
+                    <button class="suggestion" data-prompt="How do I create a strong password and manage it securely?">Creating strong passwords</button>
+                    <button class="suggestion" data-prompt="What should I do if I think my computer has been hacked?">What to do if you've been hacked</button>
+                    <button class="suggestion" data-prompt="What cybersecurity certifications should I pursue as a beginner in Arkansas?">Entry-level certifications in Arkansas</button>
                 </div>
-            </form>
+
+                <form id="home-form">
+                    <div class="input-card">
+                        <input type="text" id="homeInput" placeholder="How can I help you today?" autocomplete="off">
+                        <button type="submit" id="homeSubmit" aria-label="Send">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="19" x2="12" y2="5"/>
+                                <polyline points="5 12 12 5 19 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
 
-        <div id="bottom-spacer"></div>
+        <!-- Route: /chat/:id -->
+        <div id="chat-view">
+            <aside id="sidebar">
+                <button id="new-chat-btn">+ New Chat</button>
+                <div id="chat-list"></div>
+            </aside>
+
+            <div id="main">
+                <main id="conversation"></main>
+
+                <div id="input-wrapper">
+                    <form id="chat-form">
+                        <div class="input-card">
+                            <input type="text" id="msgInput" placeholder="How can I help you today?" autocomplete="off">
+                            <button type="submit" id="msgSubmit" aria-label="Send">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="19" x2="12" y2="5"/>
+                                    <polyline points="5 12 12 5 19 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
     </div>
 </body>
