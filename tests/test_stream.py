@@ -36,11 +36,12 @@ def test_stream_saves_message_when_authenticated(auth_client):
         create_res = auth_client.post('/api/chats', json={'title': 'Test'})
         chat_id = create_res.get_json()['id']
 
-        auth_client.post('/api/stream', json={
+        res = auth_client.post('/api/stream', json={
             'message': 'how do I stay safe?',
             'history': [],
             'chat_id': chat_id
         })
+        _ = res.data  # consume full stream so generator runs to completion
 
     chat_res = auth_client.get(f'/api/chats/{chat_id}')
     messages = chat_res.get_json()['messages']

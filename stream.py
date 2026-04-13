@@ -43,43 +43,29 @@ def stream():
 
     model = current_app.config['OLLAMA_MODEL']
     is_auth = current_user.is_authenticated
-    user_id = current_user.id if is_auth else None
 
-    # Collect tokens eagerly so DB save is guaranteed before the
-    # generator is closed, regardless of whether the client reads all data.
-    try:
-        client = get_ollama_client()
-        tokens = []
-        for chunk in client.chat(model=model, messages=messages, stream=True):
-            token = chunk.message.content
-            if token:
-                tokens.append(token)
-    except Exception as e:
-        error_msg = str(e)
-
-        def error_generate():
-            yield f'data: [ERROR] {error_msg}\n\n'
-
-        return Response(
-            stream_with_context(error_generate()),
-            content_type='text/event-stream',
-            headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
-        )
-
-    # Save assistant message to DB if authenticated
-    if is_auth and chat_id and tokens:
-        db = get_db()
-        db.execute(
-            'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
-            [chat_id, 'assistant', ''.join(tokens)]
-        )
-        db.commit()
-
-    # Stream the pre-collected tokens to the client
     def generate():
-        for token in tokens:
-            yield f'data: {json.dumps({"token": token})}\n\n'
-        yield 'data: [DONE]\n\n'
+        full_response = []
+        try:
+            client = get_ollama_client()
+            for chunk in client.chat(model=model, messages=messages, stream=True):
+                token = chunk.message.content
+                if token:
+                    full_response.append(token)
+                    yield f'data: {json.dumps({"token": token})}\n\n'
+
+            # DB write happens AFTER all tokens are yielded
+            if is_auth and chat_id:
+                db = get_db()
+                db.execute(
+                    'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
+                    [chat_id, 'assistant', ''.join(full_response)]
+                )
+                db.commit()
+
+            yield 'data: [DONE]\n\n'
+        except Exception as e:
+            yield f'data: [ERROR] {str(e)}\n\n'
 
     return Response(
         stream_with_context(generate()),
