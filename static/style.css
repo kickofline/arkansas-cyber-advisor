@@ -11,7 +11,7 @@
   --accent-dark: #FFC417;
   --danger:      #cc3333;
   --sidebar-w:   260px;
-  --user-bubble: #f0e5ff;
+  --user-bubble: #ffffff;
   --input-bg:    #ffffff;
   --shadow:      0 2px 12px rgba(0,0,0,0.06);
 }
@@ -215,7 +215,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .message.user .bubble {
   background: var(--user-bubble);
-  border: 1px solid rgba(0,0,0,0.08);
+  /* border: 1px solid var(--accent); */
   border-radius: 18px 18px 4px 18px;
   padding: 10px 16px;
   max-width: 740px;
