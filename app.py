@@ -30,6 +30,9 @@ def create_app(config=None):
     from stream import bp as stream_bp
     app.register_blueprint(stream_bp)
 
+    from admin import bp as admin_bp
+    app.register_blueprint(admin_bp)
+
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
