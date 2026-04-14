@@ -1,5 +1,6 @@
 (async () => {
   await State.init();
+  await loadPrompts();
 
   const router = new Router();
 

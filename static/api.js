@@ -21,6 +21,18 @@ const API = {
   renameChat:   (id, title)     => API._req('PATCH', `/api/chats/${id}`, { title }),
   generateTitle:(message)       => API.post('/api/title', { message }),
   migrate:      (chats)         => API.post('/api/migrate', { chats }),
+
+  // Admin
+  adminGetSettings:   ()           => API.get('/api/admin/settings'),
+  adminSaveSettings:  (data)       => API.post('/api/admin/settings', data),
+  adminListPrompts:   ()           => API.get('/api/admin/prompts'),
+  adminSavePrompt:    (id, data)   => API._req('PUT', `/api/admin/prompts/${id}`, data),
+  adminCreatePrompt:  (data)       => API.post('/api/admin/prompts', data),
+  adminDeletePrompt:  (id)         => API._req('DELETE', `/api/admin/prompts/${id}`),
+  adminListDocs:      ()           => API.get('/api/admin/documents'),
+  adminToggleDoc:     (id)         => API._req('PATCH', `/api/admin/documents/${id}`),
+  adminDeleteDoc:     (id)         => API._req('DELETE', `/api/admin/documents/${id}`),
+  adminUploadDoc:     (formData)   => fetch('/api/admin/documents', { method: 'POST', credentials: 'same-origin', body: formData }).then(r => r.json()),
 };
 
 // ── LocalChats: localStorage store for logged-out users ───────────────────────
