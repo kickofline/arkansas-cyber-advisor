@@ -1,5 +1,4 @@
 import json
-import re
 import ollama
 from flask import Blueprint, request, jsonify, Response, stream_with_context, current_app
 from flask_login import current_user
@@ -15,12 +14,28 @@ _DEFAULT_SYSTEM_PROMPT = (
     "tell them what to do first."
 )
 
-
-def _get_system_prompt():
-    db = get_db()
-    row = db.execute("SELECT value FROM settings WHERE key='system_prompt'").fetchone()
-    return row['value'] if (row and row['value']) else _DEFAULT_SYSTEM_PROMPT
-
+# Tool definition exposed to the model
+_SEARCH_TOOL = {
+    'type': 'function',
+    'function': {
+        'name': 'search_documents',
+        'description': (
+            'Search the reference document library for relevant cybersecurity guidance, '
+            'policies, or local resources. Call this when the user asks something that '
+            'may be covered by specific reference material in the library.'
+        ),
+        'parameters': {
+            'type': 'object',
+            'properties': {
+                'query': {
+                    'type': 'string',
+                    'description': 'A short, focused search query (e.g. "password manager recommendations").',
+                }
+            },
+            'required': ['query'],
+        },
+    },
+}
 
 _STOP_WORDS = {
     'the','a','an','is','are','was','were','be','been','have','has',
@@ -32,14 +47,27 @@ _STOP_WORDS = {
 }
 
 
+def _get_system_prompt():
+    db = get_db()
+    row = db.execute("SELECT value FROM settings WHERE key='system_prompt'").fetchone()
+    return row['value'] if (row and row['value']) else _DEFAULT_SYSTEM_PROMPT
+
+
+def _has_active_documents():
+    db = get_db()
+    return db.execute("SELECT 1 FROM documents WHERE active=1 LIMIT 1").fetchone() is not None
+
+
 def _search_documents(query, top_k=5):
+    """Keyword-scored paragraph search over active documents."""
     db = get_db()
     docs = db.execute(
         "SELECT filename, content FROM documents WHERE active=1"
     ).fetchall()
     if not docs:
         return []
-    q_words = set(query.lower().split()) - _STOP_WORDS
+    words = set(query.lower().split())
+    q_words = words - _STOP_WORDS or words  # fall back to all words if all are stop words
     if not q_words:
         return []
     scored = []
@@ -84,13 +112,13 @@ def generate_title():
         )
         title = (res.message.content or '').strip().strip('"\'').rstrip('.')[:80]
         return jsonify({'title': title}), 200
-    except Exception as e:
+    except Exception:
         return jsonify({'title': ''}), 200
 
 
 @bp.route('/stream', methods=['POST'])
 def stream():
-    data = request.get_json() or {}
+    data    = request.get_json() or {}
     message = (data.get('message') or '').strip()
     chat_id = data.get('chat_id')
     history = data.get('history') or []
@@ -98,32 +126,89 @@ def stream():
         return jsonify({'error': 'Message is required'}), 400
 
     system = _get_system_prompt()
-
     messages = [{'role': 'system', 'content': system}]
     for msg in history:
         if msg.get('role') in ('user', 'assistant') and msg.get('content'):
             messages.append({'role': msg['role'], 'content': msg['content']})
-    doc_chunks = _search_documents(message)
-    if doc_chunks:
-        context = '\n\n'.join(
-            f'[{fname}]:\n{chunk}' for _, fname, chunk in doc_chunks
-        )
-        messages.append({
-            'role': 'system',
-            'content': f'Relevant reference material for this query:\n\n{context}',
-        })
     messages.append({'role': 'user', 'content': message})
 
-    model = current_app.config['OLLAMA_MODEL']
+    model   = current_app.config['OLLAMA_MODEL']
     is_auth = current_user.is_authenticated
+    has_docs = _has_active_documents()
 
     def generate():
         full_response = []
         try:
             client = get_ollama_client()
+            chat_messages = list(messages)
+            tool_loop_done = False
+
+            # ── Tool-use loop ─────────────────────────────────────────────
+            # Only runs when there are active documents. Up to 3 tool calls.
+            # Falls back gracefully if the model doesn't support tools.
+            if has_docs:
+                direct_content  = None
+                direct_thinking = None
+
+                for _ in range(3):
+                    try:
+                        resp = client.chat(
+                            model=model,
+                            messages=chat_messages,
+                            tools=[_SEARCH_TOOL],
+                            stream=False,
+                            think=True,
+                            keep_alive='30m',
+                            options={'num_ctx': 2048},
+                        )
+                    except Exception:
+                        # Model doesn't support tools — skip to streaming pass
+                        break
+
+                    if not resp.message.tool_calls:
+                        # Model answered without using any tool
+                        direct_thinking = resp.message.thinking or ''
+                        direct_content  = resp.message.content  or ''
+                        tool_loop_done  = True
+                        break
+
+                    # Execute each tool call the model requested
+                    chat_messages.append(resp.message)
+                    for tc in resp.message.tool_calls:
+                        if tc.function.name == 'search_documents':
+                            query   = tc.function.arguments.get('query', '')
+                            results = _search_documents(query)
+                            result_text = (
+                                '\n\n'.join(
+                                    f'[{fname}]:\n{chunk}'
+                                    for _, fname, chunk in results
+                                )
+                                if results else 'No relevant documents found.'
+                            )
+                            chat_messages.append({'role': 'tool', 'content': result_text})
+
+                # If the model gave a direct (non-streaming) answer, emit it now
+                if tool_loop_done and direct_content is not None:
+                    if direct_thinking:
+                        yield f'data: {json.dumps({"thinking_token": direct_thinking})}\n\n'
+                    full_response.append(direct_content)
+                    yield f'data: {json.dumps({"token": direct_content})}\n\n'
+                    if is_auth and chat_id:
+                        db = get_db()
+                        db.execute(
+                            'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
+                            [chat_id, 'assistant', direct_content]
+                        )
+                        db.commit()
+                    yield 'data: [DONE]\n\n'
+                    return
+
+            # ── Streaming pass ────────────────────────────────────────────
+            # Runs when: no docs, tool loop failed/exhausted, or tool results
+            # were gathered and we need to stream the final answer.
             for chunk in client.chat(
                 model=model,
-                messages=messages,
+                messages=chat_messages,
                 stream=True,
                 think=True,
                 keep_alive='30m',
@@ -137,8 +222,7 @@ def stream():
                     full_response.append(content)
                     yield f'data: {json.dumps({"token": content})}\n\n'
 
-            # DB write happens AFTER all tokens are yielded
-            if is_auth and chat_id:
+            if is_auth and chat_id and full_response:
                 db = get_db()
                 db.execute(
                     'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
@@ -147,6 +231,7 @@ def stream():
                 db.commit()
 
             yield 'data: [DONE]\n\n'
+
         except Exception as e:
             yield f'data: [ERROR] {str(e)}\n\n'
 

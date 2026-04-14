@@ -121,6 +121,9 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
       refreshChatList(router, activeChatId);
     }
 
+    // Fire title generation concurrently with the stream (first message only)
+    if (isFirstMessage) generateAndSetTitle(activeChatId, text);
+
     // Save user message
     if (State.user) {
       await API.addMessage(activeChatId, 'user', text);
@@ -216,8 +219,6 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 
     if (!State.user && fullContent) LocalChats.addMessage(activeChatId, 'assistant', fullContent);
     if (fullContent) history.push({ role: 'assistant', content: fullContent });
-
-    if (fullContent && isFirstMessage) generateAndSetTitle(activeChatId, text);
 
     State.streaming = false;
     sendBtn.disabled = false;
