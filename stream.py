@@ -19,16 +19,38 @@ _DEFAULT_SYSTEM_PROMPT = (
 def _get_system_prompt():
     db = get_db()
     row = db.execute("SELECT value FROM settings WHERE key='system_prompt'").fetchone()
-    base = row['value'] if row else _DEFAULT_SYSTEM_PROMPT
+    return row['value'] if (row and row['value']) else _DEFAULT_SYSTEM_PROMPT
+
+
+_STOP_WORDS = {
+    'the','a','an','is','are','was','were','be','been','have','has',
+    'do','does','did','will','would','could','should','may','might',
+    'i','you','we','they','it','my','your','our','their','what','how',
+    'why','when','where','who','which','that','this','these','those',
+    'and','or','but','in','on','at','to','for','of','with','by',
+    'from','about','not','no','can',
+}
+
+
+def _search_documents(query, top_k=5):
+    db = get_db()
     docs = db.execute(
-        "SELECT filename, content FROM documents WHERE active=1 ORDER BY created_at"
+        "SELECT filename, content FROM documents WHERE active=1"
     ).fetchall()
     if not docs:
-        return base
-    doc_block = '\n\n'.join(
-        f'--- {d["filename"]} ---\n{d["content"]}' for d in docs
-    )
-    return f'{base}\n\n## Reference Documents\n\n{doc_block}'
+        return []
+    q_words = set(query.lower().split()) - _STOP_WORDS
+    if not q_words:
+        return []
+    scored = []
+    for doc in docs:
+        paras = [p.strip() for p in doc['content'].split('\n\n') if len(p.strip()) > 40]
+        for para in paras:
+            score = sum(1 for w in q_words if w in para.lower())
+            if score > 0:
+                scored.append((score, doc['filename'], para[:1000]))
+    scored.sort(reverse=True)
+    return scored[:top_k]
 
 
 def get_ollama_client():
@@ -81,6 +103,15 @@ def stream():
     for msg in history:
         if msg.get('role') in ('user', 'assistant') and msg.get('content'):
             messages.append({'role': msg['role'], 'content': msg['content']})
+    doc_chunks = _search_documents(message)
+    if doc_chunks:
+        context = '\n\n'.join(
+            f'[{fname}]:\n{chunk}' for _, fname, chunk in doc_chunks
+        )
+        messages.append({
+            'role': 'system',
+            'content': f'Relevant reference material for this query:\n\n{context}',
+        })
     messages.append({'role': 'user', 'content': message})
 
     model = current_app.config['OLLAMA_MODEL']

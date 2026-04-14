@@ -175,7 +175,7 @@ async function renderDocumentsTab(el) {
     const docs = data || [];
     el.innerHTML = `
       <div class="admin-card">
-        <p class="admin-hint">Active documents are appended to the system prompt as reference material. Supports PDF and plain text / Markdown. Max 50 000 characters per file.</p>
+        <p class="admin-hint">Active documents are searched for relevant passages on each query and injected as context. Supports PDF and plain text / Markdown. Max 50 000 characters per file.</p>
         <table class="admin-table">
           <thead><tr><th>Filename</th><th>Uploaded</th><th>Active</th><th></th></tr></thead>
           <tbody>
