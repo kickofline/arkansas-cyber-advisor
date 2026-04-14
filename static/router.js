@@ -1,10 +1,8 @@
 class Router {
   constructor() {
     this._routes = [];
-    this._suppress = false;
     window.addEventListener('hashchange', (e) => {
-      console.log('[router] hashchange old=', e.oldURL, 'new=', e.newURL, 'suppress=', this._suppress);
-      if (this._suppress) { this._suppress = false; return; }
+      console.log('[router] hashchange old=', e.oldURL, 'new=', e.newURL);
       this._resolve();
     });
   }
@@ -42,7 +40,6 @@ class Router {
 
   silentReplace(hash) {
     console.log('[router] silentReplace', hash);
-    this._suppress = true;
     window.history.replaceState(null, '', hash);
   }
 }
