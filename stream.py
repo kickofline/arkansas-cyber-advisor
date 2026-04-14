@@ -7,13 +7,28 @@ from db import get_db
 
 bp = Blueprint('stream', __name__, url_prefix='/api')
 
-SYSTEM_PROMPT = (
+_DEFAULT_SYSTEM_PROMPT = (
     "You are a friendly, plain-language cybersecurity advisor for Arkansas residents. "
     "Your audience includes parents, students, small business owners, and non-technical users. "
     "Give practical, actionable advice. Avoid jargon. "
     "If someone may be in immediate danger (e.g., active account compromise), "
     "tell them what to do first."
 )
+
+
+def _get_system_prompt():
+    db = get_db()
+    row = db.execute("SELECT value FROM settings WHERE key='system_prompt'").fetchone()
+    base = row['value'] if row else _DEFAULT_SYSTEM_PROMPT
+    docs = db.execute(
+        "SELECT filename, content FROM documents WHERE active=1 ORDER BY created_at"
+    ).fetchall()
+    if not docs:
+        return base
+    doc_block = '\n\n'.join(
+        f'--- {d["filename"]} ---\n{d["content"]}' for d in docs
+    )
+    return f'{base}\n\n## Reference Documents\n\n{doc_block}'
 
 
 def get_ollama_client():
@@ -57,14 +72,10 @@ def stream():
     message = (data.get('message') or '').strip()
     chat_id = data.get('chat_id')
     history = data.get('history') or []
-    scenario_prompt = data.get('scenario_prompt')
-
     if not message:
         return jsonify({'error': 'Message is required'}), 400
 
-    system = SYSTEM_PROMPT
-    if scenario_prompt:
-        system = f"{SYSTEM_PROMPT}\n\n{scenario_prompt}"
+    system = _get_system_prompt()
 
     messages = [{'role': 'system', 'content': system}]
     for msg in history:
