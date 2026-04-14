@@ -1,3 +1,5 @@
+const _DEFAULT_SYSTEM_PROMPT = 'You are a friendly, plain-language cybersecurity advisor for Arkansas residents. Your audience includes parents, students, small business owners, and non-technical users. Give practical, actionable advice. Avoid jargon. If someone may be in immediate danger (e.g., active account compromise), tell them what to do first.';
+
 async function renderAdmin(router) {
   if (!State.user?.is_admin) {
     router.navigate('/');
@@ -44,11 +46,13 @@ async function renderAdmin(router) {
 
 async function renderSystemPromptTab(el) {
   const { data } = await API.adminGetSettings();
-  const current = data?.system_prompt || '';
+  const saved = data?.system_prompt || '';
+  const isDefault = !saved;
   el.innerHTML = `
     <div class="admin-card">
-      <p class="admin-hint">This is the base instruction given to the AI on every conversation. Leave blank to use the built-in default.</p>
-      <textarea id="admin-system-prompt" rows="12" placeholder="Leave blank to use default…" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);resize:vertical">${escHtml(current)}</textarea>
+      <p class="admin-hint">This is the base instruction given to the AI on every conversation. Clear and save to revert to the built-in default.</p>
+      ${isDefault ? '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;padding:6px 10px;background:var(--bg-3);border-radius:6px">Showing built-in default — edit and save to override.</p>' : ''}
+      <textarea id="admin-system-prompt" rows="12" style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);resize:vertical">${escHtml(saved || _DEFAULT_SYSTEM_PROMPT)}</textarea>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
         <button class="admin-btn-primary" id="admin-save-prompt">Save</button>
         <button class="admin-btn" id="admin-reset-prompt">Reset to default</button>
@@ -65,7 +69,7 @@ async function renderSystemPromptTab(el) {
   });
 
   el.querySelector('#admin-reset-prompt').addEventListener('click', async () => {
-    el.querySelector('#admin-system-prompt').value = '';
+    el.querySelector('#admin-system-prompt').value = _DEFAULT_SYSTEM_PROMPT;
     const { ok } = await API.adminSaveSettings({ system_prompt: '' });
     el.querySelector('#admin-prompt-status').textContent = ok ? 'Reset to default.' : 'Error.';
     setTimeout(() => { el.querySelector('#admin-prompt-status').textContent = ''; }, 2000);
@@ -79,24 +83,37 @@ async function renderPromptsTab(el) {
   async function refresh() {
     const { data } = await API.adminListPrompts();
     const prompts = data || [];
+    const usingDefaults = prompts.length === 0;
     el.innerHTML = `
       <div class="admin-card">
         <p class="admin-hint">These appear as quick-start buttons on the home page and chat. If none are saved, the built-in defaults are used.</p>
+        ${usingDefaults ? '<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;padding:6px 10px;background:var(--bg-3);border-radius:6px">No custom prompts saved — showing built-in defaults (read-only). Add prompts below to override.</p>' : ''}
         <table class="admin-table">
           <thead><tr><th>Icon</th><th>Label</th><th>Prompt text</th><th>Active</th><th></th></tr></thead>
           <tbody>
-            ${prompts.map(p => `
-              <tr data-id="${p.id}">
-                <td><input class="admin-input" style="width:50px" value="${escHtml(p.icon)}" data-field="icon"></td>
-                <td><input class="admin-input" value="${escHtml(p.label)}" data-field="label"></td>
-                <td><input class="admin-input" style="width:100%" value="${escHtml(p.text)}" data-field="text"></td>
-                <td><input type="checkbox" ${p.active ? 'checked' : ''} data-field="active"></td>
-                <td>
-                  <button class="admin-btn admin-save-row">Save</button>
-                  <button class="admin-btn admin-delete-row">Delete</button>
-                </td>
-              </tr>
-            `).join('')}
+            ${usingDefaults
+              ? PROMPTS.map(p => `
+                <tr style="opacity:0.6">
+                  <td>${escHtml(p.icon)}</td>
+                  <td>${escHtml(p.label)}</td>
+                  <td>${escHtml(p.text)}</td>
+                  <td>✓</td>
+                  <td><em style="font-size:11px;color:var(--text-muted)">default</em></td>
+                </tr>
+              `).join('')
+              : prompts.map(p => `
+                <tr data-id="${p.id}">
+                  <td><input class="admin-input" style="width:50px" value="${escHtml(p.icon)}" data-field="icon"></td>
+                  <td><input class="admin-input" value="${escHtml(p.label)}" data-field="label"></td>
+                  <td><input class="admin-input" style="width:100%" value="${escHtml(p.text)}" data-field="text"></td>
+                  <td><input type="checkbox" ${p.active ? 'checked' : ''} data-field="active"></td>
+                  <td>
+                    <button class="admin-btn admin-save-row">Save</button>
+                    <button class="admin-btn admin-delete-row">Delete</button>
+                  </td>
+                </tr>
+              `).join('')
+            }
           </tbody>
         </table>
         <details style="margin-top:16px">
