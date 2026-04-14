@@ -170,11 +170,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   gap: 20px;
 }
 
-/* New-chat centered state */
-.chat-view:has(.messages:empty) { justify-content: center; }
-.chat-view:has(.messages:empty) .messages { flex: 0; display: none; }
-.chat-view:has(.messages:empty) .chat-header { display: none; }
-.chat-view:has(.messages:not(:empty)) .prompt-chips { display: none; }
+/* New-chat centered state — toggled via JS (.has-messages class) */
+.chat-view:not(.has-messages) { justify-content: center; }
+.chat-view:not(.has-messages) .messages { flex: 0; display: none; }
+.chat-view:not(.has-messages) .chat-header { display: none; }
+.chat-view.has-messages .prompt-chips { display: none; }
 
 /* Prompt chips */
 .prompt-chips {

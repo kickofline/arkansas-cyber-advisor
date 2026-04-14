@@ -54,6 +54,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 
   if (titleEl) titleEl.textContent = chatTitle || 'New conversation';
   history.forEach(m => appendMessage(messagesEl, m.role, m.content));
+  if (history.length > 0) messagesEl.closest('.chat-view').classList.add('has-messages');
   scrollToBottom(messagesEl);
 
   // Auto-resize textarea
@@ -127,6 +128,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
       LocalChats.addMessage(activeChatId, 'user', text);
     }
 
+    messagesEl.closest('.chat-view')?.classList.add('has-messages');
     console.log('[chat] appendMessage user, messagesEl connected=', messagesEl.isConnected);
     appendMessage(messagesEl, 'user', text);
     history.push({ role: 'user', content: text });
