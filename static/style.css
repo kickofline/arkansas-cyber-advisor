@@ -7,11 +7,11 @@
   --border:      rgba(0,0,0,0.08);
   --text:        #1a1a1a;
   --text-muted:  #a3a3a3;
-  --accent:      #c8634a;
-  --accent-dark: #b35535;
+  --accent:      #532987;
+  --accent-dark: #FFC417;
   --danger:      #cc3333;
   --sidebar-w:   260px;
-  --user-bubble: #ffffff;
+  --user-bubble: #e4d0ff;
   --input-bg:    #ffffff;
   --shadow:      0 2px 12px rgba(0,0,0,0.06);
 }
