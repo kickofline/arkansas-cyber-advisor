@@ -35,5 +35,9 @@
       main.innerHTML = '';
       main.appendChild(renderRegister(router));
     })
+    .on('/admin', () => {
+      renderSidebar(router, null);
+      renderAdmin(router);
+    })
     .start();
 })();
