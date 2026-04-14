@@ -111,3 +111,69 @@ def delete_prompt(prompt_id):
     db.execute('DELETE FROM admin_prompts WHERE id=?', [prompt_id])
     db.commit()
     return jsonify({'ok': True})
+
+
+# ── Documents ─────────────────────────────────────────────────────────────────
+
+@bp.route('/documents', methods=['GET'])
+@require_admin
+def list_documents():
+    db = get_db()
+    rows = db.execute(
+        'SELECT id, filename, mimetype, active, created_at FROM documents ORDER BY created_at DESC'
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@bp.route('/documents', methods=['POST'])
+@require_admin
+def upload_document():
+    file = request.files.get('file')
+    if not file or not file.filename:
+        return jsonify({'error': 'No file provided'}), 400
+
+    filename = file.filename
+    mimetype = file.content_type or ''
+
+    if filename.lower().endswith('.pdf') or 'pdf' in mimetype:
+        try:
+            import pypdf
+            reader = pypdf.PdfReader(file)
+            content = '\n\n'.join(
+                (page.extract_text() or '') for page in reader.pages
+            )
+        except Exception as e:
+            return jsonify({'error': f'PDF parse error: {e}'}), 422
+    else:
+        try:
+            content = file.read().decode('utf-8', errors='replace')
+        except Exception as e:
+            return jsonify({'error': f'Read error: {e}'}), 422
+
+    content = content[:50_000]  # cap per-document
+
+    db = get_db()
+    db.execute(
+        'INSERT INTO documents (filename, mimetype, content) VALUES (?, ?, ?)',
+        [filename, mimetype, content]
+    )
+    db.commit()
+    return jsonify({'ok': True}), 201
+
+
+@bp.route('/documents/<int:doc_id>', methods=['PATCH'])
+@require_admin
+def toggle_document(doc_id):
+    db = get_db()
+    db.execute('UPDATE documents SET active = CASE active WHEN 1 THEN 0 ELSE 1 END WHERE id=?', [doc_id])
+    db.commit()
+    return jsonify({'ok': True})
+
+
+@bp.route('/documents/<int:doc_id>', methods=['DELETE'])
+@require_admin
+def delete_document(doc_id):
+    db = get_db()
+    db.execute('DELETE FROM documents WHERE id=?', [doc_id])
+    db.commit()
+    return jsonify({'ok': True})
