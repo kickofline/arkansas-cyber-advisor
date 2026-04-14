@@ -18,6 +18,8 @@
       renderChat(router, null, scenario);
     })
     .on('/chat/:id', ({ id }) => {
+      const main = document.getElementById('main');
+      if (main && main.dataset.chatId === id) return; // already rendering this chat
       const scenario = sessionStorage.getItem('pending_scenario') || null;
       sessionStorage.removeItem('pending_scenario');
       renderSidebar(router, id);

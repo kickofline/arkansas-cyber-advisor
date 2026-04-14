@@ -1,6 +1,7 @@
 
 async function renderChat(router, chatId, scenarioPrompt = null) {
   const main = document.getElementById('main');
+  main.dataset.chatId = chatId || '';
   main.innerHTML = `
     <div class="chat-view">
       <div class="chat-header">
@@ -112,6 +113,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         chatId = activeChatId;
       }
       if (titleEl) titleEl.textContent = title;
+      document.getElementById('main').dataset.chatId = activeChatId;
       router.silentReplace(`#/chat/${activeChatId}`);
       refreshChatList(router, activeChatId);
     }
