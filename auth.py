@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db
@@ -73,5 +73,7 @@ def logout():
 @bp.route('/api/me')
 def me():
     if current_user.is_authenticated:
-        return jsonify({'id': current_user.id, 'email': current_user.email})
+        admin_emails = current_app.config.get('ADMIN_EMAILS', [])
+        is_admin = current_user.email.lower() in admin_emails
+        return jsonify({'id': current_user.id, 'email': current_user.email, 'is_admin': is_admin})
     return jsonify({'user': None})

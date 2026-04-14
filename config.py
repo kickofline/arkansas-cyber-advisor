@@ -9,6 +9,11 @@ class Config:
     OLLAMA_BASE_URL     = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
     OLLAMA_MODEL        = os.environ.get('OLLAMA_MODEL', 'skynet')
     TESTING             = False
+    ADMIN_EMAILS        = [
+        e.strip().lower()
+        for e in os.environ.get('ADMIN_EMAILS', '').split(',')
+        if e.strip()
+    ]
 
     # Cookie security — set FLASK_ENV=production in prod
     _prod = os.environ.get('FLASK_ENV') == 'production'
