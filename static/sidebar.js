@@ -16,6 +16,7 @@ async function renderSidebar(router, activeChatId = null) {
       <button class="sb-nav-btn" id="sb-new-chat">
         <span class="sb-nav-icon">+</span> New chat
       </button>
+      ${State.user?.is_admin ? '<a href="#/admin" class="sb-nav-btn sb-admin-link">⚙ Admin</a>' : ''}
     </nav>
     <div class="sb-section">
       <div class="sb-section-label">Recents</div>
