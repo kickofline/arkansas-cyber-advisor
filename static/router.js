@@ -1,7 +1,11 @@
 class Router {
   constructor() {
     this._routes = [];
-    window.addEventListener('hashchange', () => this._resolve());
+    this._suppress = false;
+    window.addEventListener('hashchange', () => {
+      if (this._suppress) { this._suppress = false; return; }
+      this._resolve();
+    });
   }
 
   on(pattern, handler) {
@@ -32,5 +36,10 @@ class Router {
 
   navigate(path) {
     window.location.hash = path;
+  }
+
+  silentReplace(hash) {
+    this._suppress = true;
+    window.history.replaceState(null, '', hash);
   }
 }

@@ -112,8 +112,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         chatId = activeChatId;
       }
       if (titleEl) titleEl.textContent = title;
-      // Update URL without re-rendering the page
-      window.history.replaceState(null, '', `#/chat/${activeChatId}`);
+      router.silentReplace(`#/chat/${activeChatId}`);
       refreshChatList(router, activeChatId);
     }
 
