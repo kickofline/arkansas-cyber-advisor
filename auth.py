@@ -73,7 +73,13 @@ def logout():
 @bp.route('/api/me')
 def me():
     if current_user.is_authenticated:
-        admin_emails = current_app.config.get('ADMIN_EMAILS', [])
-        is_admin = current_user.email.lower() in admin_emails
+        env_set = set(current_app.config.get('ADMIN_EMAILS', []))
+        row = get_db().execute("SELECT value FROM settings WHERE key='admin_emails'").fetchone()
+        db_set = set(
+            e.strip().lower()
+            for e in (row['value'] if row else '').split('\n')
+            if e.strip()
+        )
+        is_admin = current_user.email.lower() in (env_set | db_set)
         return jsonify({'id': current_user.id, 'email': current_user.email, 'is_admin': is_admin})
     return jsonify({'user': None})

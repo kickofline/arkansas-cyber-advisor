@@ -16,11 +16,13 @@ async function renderAdmin(router) {
         <button class="admin-tab active" data-tab="system-prompt">System Prompt</button>
         <button class="admin-tab" data-tab="prompts">Suggested Questions</button>
         <button class="admin-tab" data-tab="documents">Documents</button>
+        <button class="admin-tab" data-tab="admins">Admins</button>
       </div>
       <div class="admin-body">
         <div class="admin-section" id="tab-system-prompt"></div>
         <div class="admin-section" id="tab-prompts" style="display:none"></div>
         <div class="admin-section" id="tab-documents" style="display:none"></div>
+        <div class="admin-section" id="tab-admins" style="display:none"></div>
       </div>
     </div>
   `;
@@ -38,6 +40,7 @@ async function renderAdmin(router) {
     renderSystemPromptTab(main.querySelector('#tab-system-prompt')),
     renderPromptsTab(main.querySelector('#tab-prompts')),
     renderDocumentsTab(main.querySelector('#tab-documents')),
+    renderAdminsTab(main.querySelector('#tab-admins')),
   ]);
 }
 
@@ -215,7 +218,7 @@ async function renderDocumentsTab(el) {
       });
     });
 
-    el.querySelector('#doc-upload').addEventListener('change', async e => {
+    el.querySelector('#doc-upload')?.addEventListener('change', async e => {
       const file = e.target.files[0];
       if (!file) return;
       const status = el.querySelector('#doc-upload-status');
@@ -226,6 +229,77 @@ async function renderDocumentsTab(el) {
       status.textContent = result.ok ? 'Uploaded.' : (result.error || 'Error.');
       setTimeout(() => { status.textContent = ''; }, 3000);
       if (result.ok) await refresh();
+    });
+  }
+
+  await refresh();
+}
+
+
+// ── Admins ────────────────────────────────────────────────────────────────────
+
+async function renderAdminsTab(el) {
+  async function refresh() {
+    const { data } = await API.adminGetAdmins();
+    const envAdmins = data?.env_admins || [];
+    const dbAdmins  = data?.db_admins  || [];
+
+    el.innerHTML = `
+      <div class="admin-card">
+        <p class="admin-hint">Admins can access this panel. Emails set via the <code>ADMIN_EMAILS</code> environment variable are always active and cannot be removed here.</p>
+        ${envAdmins.length ? `
+          <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;padding:6px 10px;background:var(--bg-3);border-radius:6px">
+            Environment admins (read-only): ${envAdmins.map(e => `<strong>${escHtml(e)}</strong>`).join(', ')}
+          </p>` : ''}
+        <table class="admin-table" id="admins-table">
+          <thead><tr><th>Email</th><th></th></tr></thead>
+          <tbody>
+            ${dbAdmins.map(email => `
+              <tr data-email="${escHtml(email)}">
+                <td>${escHtml(email)}</td>
+                <td><button class="admin-btn admin-remove-admin">Remove</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div style="margin-top:16px;display:flex;gap:8px;align-items:center">
+          <input class="admin-input" id="new-admin-email" placeholder="Email address" style="flex:1;max-width:300px">
+          <button class="admin-btn-primary" id="admin-add-admin">Add</button>
+          <span id="admin-admins-status" style="font-size:13px;color:var(--text-muted)"></span>
+        </div>
+      </div>
+    `;
+
+    async function saveList(emails) {
+      const { ok } = await API.adminSaveAdmins(emails);
+      const status = el.querySelector('#admin-admins-status');
+      status.textContent = ok ? 'Saved.' : 'Error saving.';
+      setTimeout(() => { status.textContent = ''; }, 2000);
+      if (ok) await refresh();
+    }
+
+    el.querySelectorAll('.admin-remove-admin').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const email = btn.closest('tr').dataset.email;
+        const updated = dbAdmins.filter(e => e !== email);
+        await saveList(updated);
+      });
+    });
+
+    el.querySelector('#admin-add-admin').addEventListener('click', async () => {
+      const input = el.querySelector('#new-admin-email');
+      const email = input.value.trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        el.querySelector('#admin-admins-status').textContent = 'Enter a valid email.';
+        setTimeout(() => { el.querySelector('#admin-admins-status').textContent = ''; }, 2000);
+        return;
+      }
+      if (dbAdmins.includes(email)) {
+        el.querySelector('#admin-admins-status').textContent = 'Already in list.';
+        setTimeout(() => { el.querySelector('#admin-admins-status').textContent = ''; }, 2000);
+        return;
+      }
+      await saveList([...dbAdmins, email]);
     });
   }
 

@@ -7,12 +7,24 @@ from db import get_db
 bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 
+def _admin_emails_set():
+    """Union of env-var admins and DB-stored admins."""
+    env_set = set(current_app.config.get('ADMIN_EMAILS', []))
+    db = get_db()
+    row = db.execute("SELECT value FROM settings WHERE key='admin_emails'").fetchone()
+    db_set = set(
+        e.strip().lower()
+        for e in (row['value'] if row else '').split('\n')
+        if e.strip()
+    )
+    return env_set | db_set
+
+
 def require_admin(f):
     @wraps(f)
     @login_required
     def decorated(*args, **kwargs):
-        admin_emails = current_app.config.get('ADMIN_EMAILS', [])
-        if current_user.email.lower() not in admin_emails:
+        if current_user.email.lower() not in _admin_emails_set():
             return jsonify({'error': 'Forbidden'}), 403
         return f(*args, **kwargs)
     return decorated
@@ -175,5 +187,36 @@ def toggle_document(doc_id):
 def delete_document(doc_id):
     db = get_db()
     db.execute('DELETE FROM documents WHERE id=?', [doc_id])
+    db.commit()
+    return jsonify({'ok': True})
+
+
+# ── Admins ────────────────────────────────────────────────────────────────────
+
+@bp.route('/admins', methods=['GET'])
+@require_admin
+def get_admins():
+    env_admins = sorted(current_app.config.get('ADMIN_EMAILS', []))
+    db = get_db()
+    row = db.execute("SELECT value FROM settings WHERE key='admin_emails'").fetchone()
+    db_admins = [
+        e.strip().lower()
+        for e in (row['value'] if row else '').split('\n')
+        if e.strip()
+    ]
+    return jsonify({'env_admins': env_admins, 'db_admins': db_admins})
+
+
+@bp.route('/admins', methods=['POST'])
+@require_admin
+def save_admins():
+    data = request.get_json() or {}
+    emails = [e.strip().lower() for e in (data.get('emails') or []) if e.strip()]
+    db = get_db()
+    db.execute(
+        'INSERT INTO settings (key, value) VALUES (?, ?) '
+        'ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP',
+        ['admin_emails', '\n'.join(emails)]
+    )
     db.commit()
     return jsonify({'ok': True})
