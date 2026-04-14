@@ -8,22 +8,33 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..600;1,9..40,300..400&display=swap" />
-  <link rel="stylesheet" href="/style.css?v=3" />
+  <link rel="stylesheet" href="/style.css?v=4" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
   <div id="app">
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+    <div class="mobile-topbar">
+      <button class="sb-toggle" onclick="toggleSidebar()" aria-label="Open menu">
+        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <rect x="2" y="4" width="16" height="2" rx="1"/>
+          <rect x="2" y="9" width="16" height="2" rx="1"/>
+          <rect x="2" y="14" width="16" height="2" rx="1"/>
+        </svg>
+      </button>
+      <span class="mobile-app-name">Cyber Advisor</span>
+    </div>
     <aside id="sidebar"></aside>
     <main id="main"></main>
   </div>
-  <script src="/prompts.js?v=3"></script>
-  <script src="/router.js?v=3"></script>
-  <script src="/api.js?v=3"></script>
-  <script src="/home.js?v=3"></script>
-  <script src="/auth.js?v=3"></script>
-  <script src="/sidebar.js?v=3"></script>
-  <script src="/chat.js?v=3"></script>
-  <script src="/admin.js?v=3"></script>
-  <script src="/app.js?v=3"></script>
+  <script src="/prompts.js?v=4"></script>
+  <script src="/router.js?v=4"></script>
+  <script src="/api.js?v=4"></script>
+  <script src="/home.js?v=4"></script>
+  <script src="/auth.js?v=4"></script>
+  <script src="/sidebar.js?v=4"></script>
+  <script src="/chat.js?v=4"></script>
+  <script src="/admin.js?v=4"></script>
+  <script src="/app.js?v=4"></script>
 </body>
 </html>

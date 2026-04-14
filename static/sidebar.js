@@ -1,3 +1,15 @@
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const open = sidebar.classList.toggle('open');
+  overlay?.classList.toggle('open', open);
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar')?.classList.remove('open');
+  document.getElementById('sidebar-overlay')?.classList.remove('open');
+}
+
 const APP_LOGO_SVG = `<svg class="app-logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M12 3L5 6.5V12c0 4.2 3 8.2 7 9.5 4-1.3 7-5.3 7-9.5V6.5L12 3z" fill="currentColor"/>
   <path d="M9.5 12l1.8 1.8 3.2-3.2" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -28,6 +40,7 @@ async function renderSidebar(router, activeChatId = null) {
   `;
 
   sidebar.querySelector('#sb-new-chat').addEventListener('click', () => {
+    closeSidebar();
     router.navigate('/chat');
   });
 
@@ -59,7 +72,10 @@ async function refreshChatList(router, activeChatId = null) {
   `).join('');
 
   listEl.querySelectorAll('.chat-item').forEach(item => {
-    item.addEventListener('click', () => router.navigate(`/chat/${item.dataset.id}`));
+    item.addEventListener('click', () => {
+      closeSidebar();
+      router.navigate(`/chat/${item.dataset.id}`);
+    });
   });
 }
 
