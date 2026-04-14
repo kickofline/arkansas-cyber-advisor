@@ -2,7 +2,8 @@ class Router {
   constructor() {
     this._routes = [];
     this._suppress = false;
-    window.addEventListener('hashchange', () => {
+    window.addEventListener('hashchange', (e) => {
+      console.log('[router] hashchange old=', e.oldURL, 'new=', e.newURL, 'suppress=', this._suppress);
       if (this._suppress) { this._suppress = false; return; }
       this._resolve();
     });
@@ -22,6 +23,7 @@ class Router {
 
   _resolve() {
     const path = window.location.hash.slice(1) || '/';
+    console.log('[router] _resolve path=', path);
     for (const { regex, keys, handler } of this._routes) {
       const m = path.match(regex);
       if (m) {
@@ -39,6 +41,7 @@ class Router {
   }
 
   silentReplace(hash) {
+    console.log('[router] silentReplace', hash);
     this._suppress = true;
     window.history.replaceState(null, '', hash);
   }

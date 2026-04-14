@@ -1,5 +1,6 @@
 
 async function renderChat(router, chatId, scenarioPrompt = null) {
+  console.log('[chat] renderChat chatId=', chatId, 'scenario=', !!scenarioPrompt);
   const main = document.getElementById('main');
   main.dataset.chatId = chatId || '';
   main.innerHTML = `
@@ -113,6 +114,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         chatId = activeChatId;
       }
       if (titleEl) titleEl.textContent = title;
+      console.log('[chat] new chat created id=', activeChatId, ', updating main.dataset.chatId and URL');
       document.getElementById('main').dataset.chatId = activeChatId;
       router.silentReplace(`#/chat/${activeChatId}`);
       refreshChatList(router, activeChatId);
@@ -125,6 +127,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
       LocalChats.addMessage(activeChatId, 'user', text);
     }
 
+    console.log('[chat] appendMessage user, messagesEl connected=', messagesEl.isConnected);
     appendMessage(messagesEl, 'user', text);
     history.push({ role: 'user', content: text });
 
@@ -180,6 +183,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           }
           try {
             const { token, thinking_token } = JSON.parse(payload);
+            if (token !== undefined) console.log('[chat] token chunk, messagesEl connected=', messagesEl.isConnected);
             if (thinking_token !== undefined) {
               thinkingContent += thinking_token;
             }

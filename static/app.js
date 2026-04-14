@@ -19,7 +19,11 @@
     })
     .on('/chat/:id', ({ id }) => {
       const main = document.getElementById('main');
-      if (main && main.dataset.chatId === id) return; // already rendering this chat
+      console.log('[app] /chat/:id handler id=', id, 'main.dataset.chatId=', main?.dataset.chatId);
+      if (main && main.dataset.chatId === id) {
+        console.log('[app] skipping re-render, already on chat', id);
+        return;
+      }
       const scenario = sessionStorage.getItem('pending_scenario') || null;
       sessionStorage.removeItem('pending_scenario');
       renderSidebar(router, id);
