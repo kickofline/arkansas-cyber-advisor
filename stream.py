@@ -1,3 +1,4 @@
+import base64
 import json
 import ollama
 from flask import Blueprint, request, jsonify, Response, stream_with_context, current_app
@@ -123,7 +124,8 @@ def stream():
     data    = request.get_json() or {}
     message = (data.get('message') or '').strip()
     chat_id = data.get('chat_id')
-    history = data.get('history') or []
+    history   = data.get('history') or []
+    image_ids = [i for i in (data.get('image_ids') or []) if isinstance(i, int)]
     if not message:
         return jsonify({'error': 'Message is required'}), 400
 
@@ -132,7 +134,19 @@ def stream():
     for msg in history:
         if msg.get('role') in ('user', 'assistant') and msg.get('content'):
             messages.append({'role': msg['role'], 'content': msg['content']})
-    messages.append({'role': 'user', 'content': message})
+    user_msg = {'role': 'user', 'content': message}
+    if image_ids:
+        db_conn = get_db()
+        blobs = []
+        for img_id in image_ids:
+            row = db_conn.execute(
+                'SELECT data FROM message_images WHERE id = ?', [img_id]
+            ).fetchone()
+            if row:
+                blobs.append(base64.b64encode(bytes(row['data'])).decode('utf-8'))
+        if blobs:
+            user_msg['images'] = blobs
+    messages.append(user_msg)
 
     model        = current_app.config['OLLAMA_MODEL']
     num_ctx      = current_app.config['OLLAMA_NUM_CTX']
@@ -210,6 +224,18 @@ def stream():
                     'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
                     [chat_id, 'assistant', ''.join(full_response)]
                 )
+                if image_ids:
+                    user_row = db.execute(
+                        'SELECT id FROM messages WHERE chat_id=? AND role=? '
+                        'ORDER BY created_at DESC LIMIT 1',
+                        [chat_id, 'user']
+                    ).fetchone()
+                    if user_row:
+                        for img_id in image_ids:
+                            db.execute(
+                                'UPDATE message_images SET message_id=? WHERE id=?',
+                                [user_row['id'], img_id]
+                            )
                 db.commit()
 
             yield 'data: [DONE]\n\n'
