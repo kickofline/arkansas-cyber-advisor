@@ -37,6 +37,7 @@ services:
       - /home/skynet/ollama/ollama:/root/.ollama
     environment:
       - OLLAMA_KEEP_ALIVE=1h
+      - OLLAMA_MAX_LOADED_MODELS=2
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     # Use one of the two GPU methods below. Prefer the simple 'gpus:' line.
