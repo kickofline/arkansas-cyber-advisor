@@ -21,6 +21,9 @@ const API = {
   renameChat:   (id, title)     => API._req('PATCH', `/api/chats/${id}`, { title }),
   generateTitle:(message)       => API.post('/api/title', { message }),
   migrate:      (chats)         => API.post('/api/migrate', { chats }),
+  uploadImages: (formData)      =>
+    fetch('/api/images/upload', { method: 'POST', credentials: 'same-origin', body: formData })
+      .then(r => r.json()),
 
   // Admin
   adminGetSettings:   ()           => API.get('/api/admin/settings'),
