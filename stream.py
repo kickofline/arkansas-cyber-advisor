@@ -95,20 +95,22 @@ def generate_title():
     try:
         client = get_ollama_client()
         model  = current_app.config['OLLAMA_MODEL']
+        num_ctx      = current_app.config['OLLAMA_NUM_CTX']
+        num_parallel = current_app.config['OLLAMA_NUM_PARALLEL']
         res    = client.chat(
             model=model,
             messages=[{
                 'role': 'user',
                 'content': (
-                    'Write a short title (3–5 words) for a conversation that begins with this message. '
+                    'Write a short title (3–5 words) for this conversation exchange. '
                     'Reply with the title only — no quotes, no punctuation at the end.\n\n'
-                    f'Message: {message}'
+                    f'{message}'
                 ),
             }],
             stream=False,
             think=True,
-            keep_alive='30m',
-            options={'num_ctx': 512},
+            keep_alive='24h',
+            options={'num_ctx': num_ctx, 'num_parallel': num_parallel},
         )
         title = (res.message.content or '').strip().strip('"\'').rstrip('.')[:80]
         return jsonify({'title': title}), 200
@@ -132,24 +134,23 @@ def stream():
             messages.append({'role': msg['role'], 'content': msg['content']})
     messages.append({'role': 'user', 'content': message})
 
-    model   = current_app.config['OLLAMA_MODEL']
-    is_auth = current_user.is_authenticated
-    has_docs = _has_active_documents()
+    model        = current_app.config['OLLAMA_MODEL']
+    num_ctx      = current_app.config['OLLAMA_NUM_CTX']
+    num_parallel = current_app.config['OLLAMA_NUM_PARALLEL']
+    is_auth      = current_user.is_authenticated
+    has_docs     = _has_active_documents()
 
     def generate():
         full_response = []
         try:
             client = get_ollama_client()
             chat_messages = list(messages)
-            tool_loop_done = False
-
             # ── Tool-use loop ─────────────────────────────────────────────
-            # Only runs when there are active documents. Up to 3 tool calls.
-            # Falls back gracefully if the model doesn't support tools.
-            if has_docs:
-                direct_content  = None
-                direct_thinking = None
-
+            # Only runs when there are active documents AND the message is long
+            # enough to plausibly need reference material. Short/conversational
+            # messages skip the pre-check entirely to reduce TTFT.
+            _needs_rag = has_docs and len(message.split()) >= 5
+            if _needs_rag:
                 for _ in range(3):
                     try:
                         resp = client.chat(
@@ -157,19 +158,16 @@ def stream():
                             messages=chat_messages,
                             tools=[_SEARCH_TOOL],
                             stream=False,
-                            think=True,
-                            keep_alive='30m',
-                            options={'num_ctx': 2048},
+                            think=False,
+                            keep_alive='24h',
+                            options={'num_ctx': num_ctx, 'num_parallel': num_parallel},
                         )
                     except Exception:
                         # Model doesn't support tools — skip to streaming pass
                         break
 
                     if not resp.message.tool_calls:
-                        # Model answered without using any tool
-                        direct_thinking = resp.message.thinking or ''
-                        direct_content  = resp.message.content  or ''
-                        tool_loop_done  = True
+                        # No more tool calls — fall through to streaming pass
                         break
 
                     # Execute each tool call the model requested
@@ -187,22 +185,6 @@ def stream():
                             )
                             chat_messages.append({'role': 'tool', 'content': result_text})
 
-                # If the model gave a direct (non-streaming) answer, emit it now
-                if tool_loop_done and direct_content is not None:
-                    if direct_thinking:
-                        yield f'data: {json.dumps({"thinking_token": direct_thinking})}\n\n'
-                    full_response.append(direct_content)
-                    yield f'data: {json.dumps({"token": direct_content})}\n\n'
-                    if is_auth and chat_id:
-                        db = get_db()
-                        db.execute(
-                            'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
-                            [chat_id, 'assistant', direct_content]
-                        )
-                        db.commit()
-                    yield 'data: [DONE]\n\n'
-                    return
-
             # ── Streaming pass ────────────────────────────────────────────
             # Runs when: no docs, tool loop failed/exhausted, or tool results
             # were gathered and we need to stream the final answer.
@@ -211,8 +193,8 @@ def stream():
                 messages=chat_messages,
                 stream=True,
                 think=True,
-                keep_alive='30m',
-                options={'num_ctx': 2048},
+                keep_alive='24h',
+                options={'num_ctx': num_ctx, 'num_parallel': num_parallel},
             ):
                 thinking = chunk.message.thinking
                 content  = chunk.message.content

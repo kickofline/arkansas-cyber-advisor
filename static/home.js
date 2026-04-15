@@ -22,8 +22,8 @@ function renderHome(router) {
       </div>
 
       <div class="scenario-grid">
-        ${PROMPTS.map((p, i) => `
-          <div class="scenario-card" data-i="${i}">
+        ${PROMPTS.slice().sort(() => Math.random() - 0.5).slice(0, 6).map(p => `
+          <div class="scenario-card" data-i="${PROMPTS.indexOf(p)}">
             <div class="icon">${p.icon}</div>
             <div class="label">${p.label}</div>
           </div>

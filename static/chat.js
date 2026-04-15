@@ -24,7 +24,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           </div>
         </div>
         <div class="prompt-chips" id="prompt-chips">
-          ${PROMPTS.map(p => `<button class="prompt-chip" data-text="${escHtml(p.text)}">${escHtml(p.label)}</button>`).join('')}
+          ${PROMPTS.slice().sort(() => Math.random() - 0.5).slice(0, 4).map(p => `<button class="prompt-chip" data-text="${escHtml(p.text)}">${escHtml(p.label)}</button>`).join('')}
         </div>
         <div class="input-disclaimer">Cyber Advisor can make mistakes. Always verify important security information.</div>
       </div>
@@ -121,9 +121,6 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
       refreshChatList(router, activeChatId);
     }
 
-    // Fire title generation concurrently with the stream (first message only)
-    if (isFirstMessage) generateAndSetTitle(activeChatId, text);
-
     // Save user message
     if (State.user) {
       await API.addMessage(activeChatId, 'user', text);
@@ -177,6 +174,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           if (payload === '[DONE]') break;
           if (payload.startsWith('[ERROR]')) {
             ensureStreamBubble();
+            typingEl.remove();
             showStreamError(bubble, payload.slice(7).trim() || 'Could not reach the AI.', () => {
               history.pop();
               State.streaming = false;
@@ -191,23 +189,27 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
             if (token !== undefined) console.log('[chat] token chunk, messagesEl connected=', messagesEl.isConnected);
             if (thinking_token !== undefined) {
               thinkingContent += thinking_token;
+              ensureStreamBubble();
+              thinkingEl.textContent = thinkingContent;
+              const toggle = thinkingEl.closest('.reasoning-block')?.querySelector('.reasoning-toggle');
+              if (toggle && toggle.style.display === 'none') toggle.style.display = 'inline-flex';
             }
             if (token !== undefined) {
               ensureStreamBubble();
-              if (thinkingContent && !thinkingEl.innerHTML) {
+              typingEl.remove();
+              if (thinkingContent) {
                 thinkingEl.innerHTML = marked.parse(thinkingContent);
-                const toggle = thinkingEl.closest('.reasoning-block')?.querySelector('.reasoning-toggle');
-                if (toggle) toggle.style.display = 'inline-flex';
               }
               fullContent += token;
               mainEl.innerHTML = marked.parse(fullContent);
             }
           } catch {}
         }
-        scrollToBottom(messagesEl);
+        if (isNearBottom(messagesEl)) scrollToBottom(messagesEl);
       }
     } catch {
       ensureStreamBubble();
+      typingEl.remove();
       showStreamError(bubble, 'Could not reach the AI. Please try again.', () => {
         history.pop();
         State.streaming = false;
@@ -219,6 +221,9 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 
     if (!State.user && fullContent) LocalChats.addMessage(activeChatId, 'assistant', fullContent);
     if (fullContent) history.push({ role: 'assistant', content: fullContent });
+
+    // Generate title after response so it can reflect both question and answer
+    if (isFirstMessage && fullContent) generateAndSetTitle(activeChatId, `${text}\n\n${fullContent}`);
 
     State.streaming = false;
     sendBtn.disabled = false;
@@ -261,7 +266,6 @@ function appendMessage(container, role, content) {
 }
 
 function appendStreamingMessage(container, typingEl) {
-  typingEl.remove();
   const wrap   = document.createElement('div');
   wrap.className = 'message assistant';
   const bubble = document.createElement('div');
@@ -331,4 +335,8 @@ function showStreamError(bubble, msg, retryFn) {
 
 function scrollToBottom(el) {
   el.scrollTop = el.scrollHeight;
+}
+
+function isNearBottom(el) {
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
 }
