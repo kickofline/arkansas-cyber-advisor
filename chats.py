@@ -49,7 +49,23 @@ def get_chat(chat_id):
         'SELECT id, role, content, created_at FROM messages WHERE chat_id = ? ORDER BY created_at',
         [chat_id]
     ).fetchall()
-    return jsonify({'chat': dict(chat), 'messages': [dict(m) for m in messages]})
+    message_list = [dict(m) for m in messages]
+
+    img_map = {}
+    if message_list:
+        msg_ids = [m['id'] for m in message_list]
+        placeholders = ','.join('?' * len(msg_ids))
+        img_rows = db.execute(
+            f'SELECT message_id, id FROM message_images WHERE message_id IN ({placeholders})',
+            msg_ids
+        ).fetchall()
+        for row in img_rows:
+            img_map.setdefault(row['message_id'], []).append(row['id'])
+
+    for m in message_list:
+        m['image_ids'] = img_map.get(m['id'], [])
+
+    return jsonify({'chat': dict(chat), 'messages': message_list})
 
 
 @bp.route('/chats/<chat_id>', methods=['PATCH'])

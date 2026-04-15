@@ -65,3 +65,22 @@ def test_migrate_chats(auth_client):
     assert data['imported'] == 1
     list_res = auth_client.get('/api/chats')
     assert len(list_res.get_json()) == 1
+
+
+def test_get_chat_messages_include_image_ids(auth_client):
+    import io
+    create_res = auth_client.post('/api/chats', json={'title': 'Img Chat'})
+    chat_id = create_res.get_json()['id']
+
+    # Add a user message
+    auth_client.post(
+        f'/api/chats/{chat_id}/messages',
+        json={'role': 'user', 'content': 'Look at this'}
+    )
+
+    # Get messages — image_ids should default to empty list
+    res = auth_client.get(f'/api/chats/{chat_id}')
+    assert res.status_code == 200
+    messages = res.get_json()['messages']
+    assert len(messages) == 1
+    assert messages[0]['image_ids'] == []
