@@ -373,6 +373,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 .model-label {
   font-size: 12.5px;
