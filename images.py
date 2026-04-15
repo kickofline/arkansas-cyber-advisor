@@ -16,10 +16,8 @@ def upload_images():
     if not files or not any(f.filename for f in files):
         return jsonify({'error': 'No files provided'}), 400
 
-    db = get_db()
-    _cleanup_old_images(db)
-
-    ids = []
+    # Validate all files before writing anything to DB
+    validated = []
     for file in files:
         if not file or not file.filename:
             continue
@@ -29,9 +27,16 @@ def upload_images():
         data = file.read()
         if len(data) > _MAX_SIZE:
             return jsonify({'error': f'{file.filename} exceeds 5 MB limit'}), 400
+        validated.append((file.filename, mimetype, data))
+
+    db = get_db()
+    _cleanup_old_images(db)
+
+    ids = []
+    for filename, mimetype, data in validated:
         cursor = db.execute(
             'INSERT INTO message_images (filename, mimetype, data) VALUES (?, ?, ?)',
-            [file.filename, mimetype, data]
+            [filename, mimetype, data]
         )
         ids.append(cursor.lastrowid)
 
