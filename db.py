@@ -49,6 +49,15 @@ _SCHEMA = '''
         active INTEGER NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS message_images (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        message_id INTEGER REFERENCES messages(id) ON DELETE CASCADE,
+        filename   TEXT NOT NULL,
+        mimetype   TEXT NOT NULL,
+        data       BLOB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 '''
 
 
