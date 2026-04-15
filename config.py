@@ -8,6 +8,8 @@ class Config:
     DATABASE            = os.environ.get('DATABASE', 'cyber_advisor.db')
     OLLAMA_BASE_URL     = os.environ.get('OLLAMA_URL', 'http://localhost:11434')
     OLLAMA_MODEL        = os.environ.get('OLLAMA_MODEL', 'skynet')
+    OLLAMA_NUM_CTX      = int(os.environ.get('OLLAMA_NUM_CTX', 16384))
+    OLLAMA_NUM_PARALLEL = int(os.environ.get('OLLAMA_NUM_PARALLEL', 4))
     TESTING             = False
     ADMIN_EMAILS        = [
         e.strip().lower()
