@@ -11,18 +11,27 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
       <div class="messages" id="messages"></div>
       <div class="input-wrap">
         <div class="input-card">
-          <textarea id="msg-input" rows="1" placeholder="How can I help?"></textarea>
-          <div class="input-card-footer">
-            <div class="input-card-right">
-              <span class="model-label">Cyber Advisor</span>
-              <button class="send-btn" id="send-btn" title="Send">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="8" y1="14" x2="8" y2="2"/><polyline points="3 7 8 2 13 7"/>
-                </svg>
-              </button>
+            <div class="img-thumbnail-strip" id="img-strip"></div>
+            <textarea id="msg-input" rows="1" placeholder="How can I help?"></textarea>
+            <div class="input-card-footer">
+              <div class="input-card-left">
+                <button class="attach-btn" id="attach-btn" title="Attach images">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                    <path d="M13.5 7.5l-6.5 6.5a4 4 0 0 1-5.657-5.657l7.07-7.07a2.5 2.5 0 0 1 3.536 3.536L5.879 11.38A1 1 0 0 1 4.464 9.97l6.364-6.364"/>
+                  </svg>
+                </button>
+                <input type="file" id="img-input" accept="image/*" multiple style="display:none">
+              </div>
+              <div class="input-card-right">
+                <span class="model-label">Cyber Advisor</span>
+                <button class="send-btn" id="send-btn" title="Send">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="14" x2="8" y2="2"/><polyline points="3 7 8 2 13 7"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         <div class="prompt-chips" id="prompt-chips">
           ${PROMPTS.slice().sort(() => Math.random() - 0.5).slice(0, 4).map(p => `<button class="prompt-chip" data-text="${escHtml(p.text)}">${escHtml(p.label)}</button>`).join('')}
         </div>
@@ -35,6 +44,47 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
   const inputEl     = document.getElementById('msg-input');
   const sendBtn     = document.getElementById('send-btn');
   const titleEl     = document.getElementById('chat-title');
+  const attachBtn = document.getElementById('attach-btn');
+  const imgInput  = document.getElementById('img-input');
+  const imgStrip  = document.getElementById('img-strip');
+  let pendingImageIds = [];
+
+  attachBtn.addEventListener('click', () => imgInput.click());
+
+  imgInput.addEventListener('change', async () => {
+    const files = Array.from(imgInput.files);
+    if (!files.length) return;
+
+    const formData = new FormData();
+    files.forEach(f => formData.append('files[]', f));
+
+    try {
+      const { ids } = await API.uploadImages(formData);
+      ids.forEach((id, i) => {
+        pendingImageIds.push(id);
+        const wrap = document.createElement('div');
+        wrap.className = 'img-thumb-wrap';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(files[i]);
+        img.className = 'img-thumb';
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'img-thumb-remove';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => {
+          pendingImageIds = pendingImageIds.filter(x => x !== id);
+          wrap.remove();
+          if (!imgStrip.children.length) imgStrip.style.display = 'none';
+        });
+        wrap.appendChild(img);
+        wrap.appendChild(removeBtn);
+        imgStrip.appendChild(wrap);
+      });
+      imgStrip.style.display = 'flex';
+    } catch (e) {
+      console.error('[chat] image upload failed', e);
+    }
+    imgInput.value = '';
+  });
 
   // Load history
   let history = [];
@@ -53,7 +103,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
   }
 
   if (titleEl) titleEl.textContent = chatTitle || 'New conversation';
-  history.forEach(m => appendMessage(messagesEl, m.role, m.content));
+  history.forEach(m => appendMessage(messagesEl, m.role, m.content, m.image_ids || []));
   if (history.length > 0) messagesEl.closest('.chat-view').classList.add('has-messages');
   scrollToBottom(messagesEl);
 
@@ -96,6 +146,10 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 
     inputEl.value = '';
     inputEl.style.height = 'auto';
+    const sentImageIds = [...pendingImageIds];
+    pendingImageIds = [];
+    imgStrip.innerHTML = '';
+    imgStrip.style.display = 'none';
     sendBtn.disabled = true;
     State.streaming = true;
 
@@ -130,8 +184,8 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 
     messagesEl.closest('.chat-view')?.classList.add('has-messages');
     console.log('[chat] appendMessage user, messagesEl connected=', messagesEl.isConnected);
-    appendMessage(messagesEl, 'user', text);
-    history.push({ role: 'user', content: text });
+    appendMessage(messagesEl, 'user', text, sentImageIds);
+    history.push({ role: 'user', content: text, image_ids: sentImageIds });
 
     // Show thinking indicator until first token arrives
     const typingEl = appendTyping(messagesEl);
@@ -154,6 +208,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
           message: text,
           chat_id: State.user ? activeChatId : null,
           history: history.slice(0, -1),
+          image_ids: sentImageIds,
         }),
       });
 
@@ -244,7 +299,7 @@ function processThinkTags(raw) {
   return { thinking: m[1].trim(), main: raw.slice(m[0].length).trimStart() };
 }
 
-function appendMessage(container, role, content) {
+function appendMessage(container, role, content, imageIds = []) {
   const wrap   = document.createElement('div');
   wrap.className = `message ${role}`;
   const bubble = document.createElement('div');
@@ -257,7 +312,24 @@ function appendMessage(container, role, content) {
     mainEl.innerHTML = marked.parse(processed.main || '');
     bubble.appendChild(mainEl);
   } else {
-    bubble.textContent = content;
+    if (imageIds.length > 0) {
+      const strip = document.createElement('div');
+      strip.className = 'msg-image-strip';
+      imageIds.forEach(id => {
+        const a = document.createElement('a');
+        a.href = `/api/images/${id}`;
+        a.target = '_blank';
+        const img = document.createElement('img');
+        img.src = `/api/images/${id}`;
+        img.className = 'msg-image';
+        a.appendChild(img);
+        strip.appendChild(a);
+      });
+      bubble.appendChild(strip);
+    }
+    const textEl = document.createElement('div');
+    textEl.textContent = content;
+    bubble.appendChild(textEl);
   }
 
   wrap.appendChild(bubble);
