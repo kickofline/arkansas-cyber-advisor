@@ -33,6 +33,9 @@ def create_app(config=None):
     from admin import bp as admin_bp
     app.register_blueprint(admin_bp)
 
+    from images import bp as images_bp
+    app.register_blueprint(images_bp)
+
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
