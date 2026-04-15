@@ -100,8 +100,8 @@ def add_message(chat_id):
         return jsonify({'error': 'Invalid role'}), 400
 
     db.execute(
-        'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
-        [chat_id, role, content]
+        'INSERT INTO messages (id, chat_id, role, content) VALUES (?, ?, ?, ?)',
+        [str(uuid.uuid4()), chat_id, role, content]
     )
     db.commit()
     return jsonify({'ok': True}), 201
@@ -127,8 +127,8 @@ def migrate_chats():
             content = msg.get('content', '')
             if role in ('user', 'assistant') and content:
                 db.execute(
-                    'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
-                    [chat_id, role, content]
+                    'INSERT INTO messages (id, chat_id, role, content) VALUES (?, ?, ?, ?)',
+                    [str(uuid.uuid4()), chat_id, role, content]
                 )
         imported += 1
     db.commit()

@@ -687,6 +687,130 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   cursor: pointer;
 }
 
+/* ── Feedback buttons ───────────────────────────────────────────────────────── */
+.feedback-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+}
+.feedback-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  padding: 0;
+}
+.feedback-btn:hover { background: var(--bg-3); color: var(--text); }
+.feedback-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── Feedback modal ──────────────────────────────────────────────────────────── */
+.feedback-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.feedback-dialog {
+  background: var(--bg-2);
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  padding: 24px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.feedback-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.feedback-dialog-icon { font-size: 20px; }
+.feedback-dialog-title { font-size: 16px; font-weight: 600; flex: 1; }
+.feedback-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+.feedback-close:hover { color: var(--text); }
+.feedback-notice {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+.feedback-notice strong { color: var(--text); }
+.feedback-label {
+  font-size: 13px;
+  font-weight: 500;
+  display: block;
+}
+.feedback-optional { color: var(--text-muted); font-weight: 400; }
+.feedback-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+  min-height: 72px;
+}
+.feedback-textarea:focus { outline: none; border-color: var(--accent); }
+.feedback-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.feedback-cancel {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text);
+}
+.feedback-cancel:hover { background: var(--bg-3); }
+.feedback-submit {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.feedback-submit:hover { opacity: 0.88; }
+.feedback-submit:disabled { opacity: 0.5; cursor: default; }
+.feedback-status {
+  font-size: 13px;
+  color: var(--danger);
+  min-height: 1em;
+  margin: 0;
+}
+
 /* ── Admin Panel ────────────────────────────────────────────────────────────── */
 .admin-wrap {
   max-width: 860px;

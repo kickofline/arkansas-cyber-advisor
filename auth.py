@@ -1,3 +1,4 @@
+import uuid
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -36,8 +37,8 @@ def register():
         return jsonify({'error': 'Email already registered'}), 409
 
     db.execute(
-        'INSERT INTO users (email, password_hash) VALUES (?, ?)',
-        [email, generate_password_hash(password)]
+        'INSERT INTO users (id, email, password_hash) VALUES (?, ?, ?)',
+        [str(uuid.uuid4()), email, generate_password_hash(password)]
     )
     db.commit()
 

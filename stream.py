@@ -1,5 +1,6 @@
 import base64
 import json
+import uuid
 import ollama
 from flask import Blueprint, request, jsonify, Response, stream_with_context, current_app
 from flask_login import current_user
@@ -125,9 +126,9 @@ def stream():
     message = (data.get('message') or '').strip()
     chat_id = data.get('chat_id')
     history   = data.get('history') or []
-    image_ids = [i for i in (data.get('image_ids') or []) if isinstance(i, int)]
-    if not message:
-        return jsonify({'error': 'Message is required'}), 400
+    image_ids = [i for i in (data.get('image_ids') or []) if isinstance(i, str) and i]
+    if not message and not image_ids:
+        return jsonify({'error': 'Message or image is required'}), 400
 
     system = _get_system_prompt()
     messages = [{'role': 'system', 'content': system}]
@@ -153,6 +154,23 @@ def stream():
     num_parallel = current_app.config['OLLAMA_NUM_PARALLEL']
     is_auth      = current_user.is_authenticated
     has_docs     = _has_active_documents()
+
+    # Link images to the user message row immediately, before streaming begins.
+    # API.addMessage (called by the client before this request) has already committed
+    # the user message, so the latest user row is the correct one.
+    if is_auth and chat_id and image_ids:
+        db = get_db()
+        user_row = db.execute(
+            'SELECT id FROM messages WHERE chat_id=? AND role=? ORDER BY id DESC LIMIT 1',
+            [chat_id, 'user']
+        ).fetchone()
+        if user_row:
+            for img_id in image_ids:
+                db.execute(
+                    'UPDATE message_images SET message_id=? WHERE id=?',
+                    [user_row['id'], img_id]
+                )
+            db.commit()
 
     def generate():
         full_response = []
@@ -221,21 +239,9 @@ def stream():
             if is_auth and chat_id and full_response:
                 db = get_db()
                 db.execute(
-                    'INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)',
-                    [chat_id, 'assistant', ''.join(full_response)]
+                    'INSERT INTO messages (id, chat_id, role, content) VALUES (?, ?, ?, ?)',
+                    [str(uuid.uuid4()), chat_id, 'assistant', ''.join(full_response)]
                 )
-                if image_ids:
-                    user_row = db.execute(
-                        'SELECT id FROM messages WHERE chat_id=? AND role=? '
-                        'ORDER BY id DESC LIMIT 1',
-                        [chat_id, 'user']
-                    ).fetchone()
-                    if user_row:
-                        for img_id in image_ids:
-                            db.execute(
-                                'UPDATE message_images SET message_id=? WHERE id=?',
-                                [user_row['id'], img_id]
-                            )
                 db.commit()
 
             yield 'data: [DONE]\n\n'

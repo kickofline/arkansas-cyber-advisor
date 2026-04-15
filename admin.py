@@ -1,4 +1,5 @@
 import os
+import uuid
 from functools import wraps
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
@@ -89,14 +90,14 @@ def create_prompt():
         return jsonify({'error': 'label and text required'}), 400
     db = get_db()
     db.execute(
-        'INSERT INTO admin_prompts (icon, label, text, position) VALUES (?, ?, ?, ?)',
-        [data.get('icon', '🔒'), label, text, int(data.get('position', 0))]
+        'INSERT INTO admin_prompts (id, icon, label, text, position) VALUES (?, ?, ?, ?, ?)',
+        [str(uuid.uuid4()), data.get('icon', '🔒'), label, text, int(data.get('position', 0))]
     )
     db.commit()
     return jsonify({'ok': True}), 201
 
 
-@bp.route('/prompts/<int:prompt_id>', methods=['PUT'])
+@bp.route('/prompts/<prompt_id>', methods=['PUT'])
 @require_admin
 def update_prompt(prompt_id):
     data = request.get_json() or {}
@@ -116,7 +117,7 @@ def update_prompt(prompt_id):
     return jsonify({'ok': True})
 
 
-@bp.route('/prompts/<int:prompt_id>', methods=['DELETE'])
+@bp.route('/prompts/<prompt_id>', methods=['DELETE'])
 @require_admin
 def delete_prompt(prompt_id):
     db = get_db()
@@ -166,14 +167,14 @@ def upload_document():
 
     db = get_db()
     db.execute(
-        'INSERT INTO documents (filename, mimetype, content) VALUES (?, ?, ?)',
-        [filename, mimetype, content]
+        'INSERT INTO documents (id, filename, mimetype, content) VALUES (?, ?, ?, ?)',
+        [str(uuid.uuid4()), filename, mimetype, content]
     )
     db.commit()
     return jsonify({'ok': True}), 201
 
 
-@bp.route('/documents/<int:doc_id>', methods=['PATCH'])
+@bp.route('/documents/<doc_id>', methods=['PATCH'])
 @require_admin
 def toggle_document(doc_id):
     db = get_db()
@@ -182,7 +183,7 @@ def toggle_document(doc_id):
     return jsonify({'ok': True})
 
 
-@bp.route('/documents/<int:doc_id>', methods=['DELETE'])
+@bp.route('/documents/<doc_id>', methods=['DELETE'])
 @require_admin
 def delete_document(doc_id):
     db = get_db()

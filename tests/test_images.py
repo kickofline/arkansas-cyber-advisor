@@ -49,17 +49,18 @@ def test_serve_image(client):
 
 
 def test_serve_image_not_found(client):
-    res = client.get('/api/images/99999')
+    res = client.get('/api/images/00000000-0000-0000-0000-000000000000')
     assert res.status_code == 404
 
 
 def test_cleanup_deletes_old_images(app):
     with app.app_context():
         db = get_db()
+        import uuid as _uuid
         db.execute(
-            "INSERT INTO message_images (filename, mimetype, data, created_at) "
-            "VALUES (?, ?, ?, datetime('now', '-31 days'))",
-            ['old.png', 'image/png', b'old-data']
+            "INSERT INTO message_images (id, filename, mimetype, data, created_at) "
+            "VALUES (?, ?, ?, ?, datetime('now', '-31 days'))",
+            [str(_uuid.uuid4()), 'old.png', 'image/png', b'old-data']
         )
         db.commit()
         count_before = db.execute('SELECT COUNT(*) FROM message_images').fetchone()[0]

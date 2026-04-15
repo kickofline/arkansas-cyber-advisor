@@ -112,6 +112,10 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
   if (titleEl) titleEl.textContent = chatTitle || 'New conversation';
   history.forEach(m => appendMessage(messagesEl, m.role, m.content, m.image_ids || []));
   if (history.length > 0) messagesEl.closest('.chat-view').classList.add('has-messages');
+  // Attach feedback buttons to all assistant messages loaded from history
+  messagesEl.querySelectorAll('.message.assistant .bubble').forEach(bubble => {
+    if (!bubble.querySelector('.feedback-row')) attachFeedbackButtons(bubble, () => history);
+  });
   scrollToBottom(messagesEl);
 
   // Auto-resize textarea
@@ -149,7 +153,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 
   async function sendMessage() {
     const text = inputEl.value.trim();
-    if (!text || State.streaming) return;
+    if ((!text && !pendingImageIds.length) || State.streaming) return;
 
     inputEl.value = '';
     inputEl.style.height = 'auto';
@@ -166,7 +170,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     // Ensure chat exists
     let activeChatId = chatId;
     if (!activeChatId) {
-      const title = text.split(' ').slice(0, 6).join(' ');
+      const title = text ? text.split(' ').slice(0, 6).join(' ') : 'Image';
       if (State.user) {
         const { data } = await API.createChat(title);
         activeChatId = data.id;
@@ -284,6 +288,9 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
 
     if (!State.user && fullContent) LocalChats.addMessage(activeChatId, 'assistant', fullContent);
     if (fullContent) history.push({ role: 'assistant', content: fullContent });
+
+    // Attach feedback buttons to the completed assistant bubble
+    if (fullContent && bubble) attachFeedbackButtons(bubble, () => history);
 
     // Generate title after response so it can reflect both question and answer
     if (isFirstMessage && fullContent) generateAndSetTitle(activeChatId, `${text}\n\n${fullContent}`);
@@ -429,4 +436,101 @@ function scrollToBottom(el) {
 
 function isNearBottom(el) {
   return el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+}
+
+// ── Feedback ──────────────────────────────────────────────────────────────────
+
+function attachFeedbackButtons(bubble, getHistory) {
+  const row = document.createElement('div');
+  row.className = 'feedback-row';
+
+  ['positive', 'negative'].forEach(sentiment => {
+    const btn = document.createElement('button');
+    btn.className = 'feedback-btn';
+    btn.title = sentiment === 'positive' ? 'Good response' : 'Bad response';
+    btn.innerHTML = sentiment === 'positive'
+      ? '<svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8.864.046C7.908-.193 7.02.53 6.956 1.466c-.072 1.051-.23 2.016-.428 2.59-.125.36-.479 1.013-1.04 1.639-.557.623-1.282 1.178-2.131 1.41C2.685 7.288 2 7.87 2 8.72v4.001c0 .845.682 1.464 1.448 1.545 1.07.114 1.564.415 2.068.723l.048.03c.272.165.578.348.97.484.397.136.861.217 1.466.217h3.5c.937 0 1.599-.477 1.934-1.064a1.86 1.86 0 0 0 .254-.912c0-.152-.023-.312-.077-.464.201-.263.38-.578.488-.901.11-.33.172-.762.004-1.149.069-.13.12-.269.159-.403.077-.27.113-.568.113-.857 0-.288-.036-.585-.113-.856a2.144 2.144 0 0 0-.138-.362 1.9 1.9 0 0 0 .234-1.734c-.206-.592-.682-1.1-1.2-1.272-.847-.282-1.803-.276-2.516-.211a9.84 9.84 0 0 0-.443.05 9.365 9.365 0 0 0-.062-4.509A1.38 1.38 0 0 0 9.125.111 1.38 1.38 0 0 0 8.864.046z"/></svg>'
+      : '<svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8.864 15.674c-.956.24-1.843-.484-1.908-1.42-.072-1.05-.23-2.015-.428-2.59-.125-.36-.479-1.012-1.04-1.638-.557-.624-1.282-1.179-2.131-1.41C2.685 8.432 2 7.85 2 7V3c0-.845.682-1.464 1.448-1.545 1.07-.114 1.564-.415 2.068-.723l.048-.03c.272-.166.578-.349.97-.484.397-.136.861-.217 1.466-.217h3.5c.937 0 1.599.477 1.934 1.064.164.287.254.627.254.912 0 .152-.023.312-.077.464.201.262.38.577.488.9.11.33.172.762.004 1.15.069.13.12.268.159.403.077.27.113.567.113.856 0 .289-.036.586-.113.856-.035.12-.08.244-.138.363.394.571.418 1.2.234 1.733-.206.592-.682 1.1-1.2 1.272-.847.283-1.803.276-2.516.211a9.877 9.877 0 0 1-.443-.05 9.364 9.364 0 0 1-.062 4.51c-.138.508-.32.968-.64 1.226z"/></svg>';
+    btn.addEventListener('click', () => showFeedbackModal(sentiment, getHistory(), btn, row));
+    row.appendChild(btn);
+  });
+
+  bubble.appendChild(row);
+}
+
+function showFeedbackModal(sentiment, conversation, triggerBtn, feedbackRow) {
+  // Remove any existing modal
+  document.getElementById('feedback-modal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'feedback-modal';
+  overlay.className = 'feedback-overlay';
+
+  const icon  = sentiment === 'positive' ? '👍' : '👎';
+  const label = sentiment === 'positive' ? 'Good response' : 'Bad response';
+
+  overlay.innerHTML = `
+    <div class="feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="fb-title">
+      <div class="feedback-dialog-header">
+        <span class="feedback-dialog-icon">${icon}</span>
+        <span id="fb-title" class="feedback-dialog-title">${escHtml(label)}</span>
+        <button class="feedback-close" aria-label="Close">&times;</button>
+      </div>
+      <p class="feedback-notice">
+        Your feedback — including this conversation — will be sent to the
+        <strong>Arkansas Cyber Advisor team</strong>.
+      </p>
+      <label class="feedback-label" for="fb-comment">Add a comment <span class="feedback-optional">(optional)</span></label>
+      <textarea id="fb-comment" class="feedback-textarea" rows="3" placeholder="What was helpful or unhelpful?"></textarea>
+      <div class="feedback-actions">
+        <button class="feedback-cancel">Cancel</button>
+        <button class="feedback-submit">Send Feedback</button>
+      </div>
+      <p class="feedback-status" aria-live="polite"></p>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const dialog   = overlay.querySelector('.feedback-dialog');
+  const statusEl = overlay.querySelector('.feedback-status');
+  const submitBtn = overlay.querySelector('.feedback-submit');
+  const textarea  = overlay.querySelector('#fb-comment');
+
+  function close() { overlay.remove(); }
+
+  overlay.querySelector('.feedback-close').addEventListener('click', close);
+  overlay.querySelector('.feedback-cancel').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+  submitBtn.addEventListener('click', async () => {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    statusEl.textContent = '';
+
+    try {
+      const { data, ok } = await API.sendFeedback(
+        sentiment,
+        textarea.value.trim(),
+        conversation
+      );
+      if (!ok) {
+        statusEl.textContent = `Error: ${data?.error || 'Could not send feedback.'}`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Feedback';
+        return;
+      }
+      // Success — mark the button and close
+      feedbackRow.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active'));
+      triggerBtn.classList.add('active', 'sent');
+      close();
+    } catch {
+      statusEl.textContent = 'Could not send feedback. Please try again.';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Feedback';
+    }
+  });
+
+  textarea.focus();
 }

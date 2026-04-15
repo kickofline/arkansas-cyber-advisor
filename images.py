@@ -1,3 +1,4 @@
+import uuid
 from flask import Blueprint, request, jsonify, Response
 from db import get_db
 
@@ -34,17 +35,18 @@ def upload_images():
 
     ids = []
     for filename, mimetype, data in validated:
-        cursor = db.execute(
-            'INSERT INTO message_images (filename, mimetype, data) VALUES (?, ?, ?)',
-            [filename, mimetype, data]
+        img_id = str(uuid.uuid4())
+        db.execute(
+            'INSERT INTO message_images (id, filename, mimetype, data) VALUES (?, ?, ?, ?)',
+            [img_id, filename, mimetype, data]
         )
-        ids.append(cursor.lastrowid)
+        ids.append(img_id)
 
     db.commit()
     return jsonify({'ids': ids}), 201
 
 
-@bp.route('/images/<int:image_id>', methods=['GET'])
+@bp.route('/images/<image_id>', methods=['GET'])
 def serve_image(image_id):
     db = get_db()
     row = db.execute(

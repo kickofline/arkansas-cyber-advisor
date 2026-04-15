@@ -36,6 +36,9 @@ def create_app(config=None):
     from images import bp as images_bp
     app.register_blueprint(images_bp)
 
+    from feedback import bp as feedback_bp
+    app.register_blueprint(feedback_bp)
+
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
     def serve(path):
