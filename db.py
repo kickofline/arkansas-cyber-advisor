@@ -58,6 +58,8 @@ _SCHEMA = '''
         data       BLOB NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE INDEX IF NOT EXISTS idx_message_images_message_id ON message_images(message_id);
 '''
 
 
