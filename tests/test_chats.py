@@ -68,7 +68,6 @@ def test_migrate_chats(auth_client):
 
 
 def test_get_chat_messages_include_image_ids(auth_client):
-    import io
     create_res = auth_client.post('/api/chats', json={'title': 'Img Chat'})
     chat_id = create_res.get_json()['id']
 
