@@ -227,7 +227,7 @@ def stream():
                 if image_ids:
                     user_row = db.execute(
                         'SELECT id FROM messages WHERE chat_id=? AND role=? '
-                        'ORDER BY created_at DESC LIMIT 1',
+                        'ORDER BY id DESC LIMIT 1',
                         [chat_id, 'user']
                     ).fetchone()
                     if user_row:

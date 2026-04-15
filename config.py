@@ -11,6 +11,7 @@ class Config:
     OLLAMA_NUM_CTX      = int(os.environ.get('OLLAMA_NUM_CTX', 16384))
     OLLAMA_NUM_PARALLEL = int(os.environ.get('OLLAMA_NUM_PARALLEL', 4))
     TESTING             = False
+    MAX_CONTENT_LENGTH  = 50 * 1024 * 1024  # 50 MB request ceiling for image uploads
     ADMIN_EMAILS        = [
         e.strip().lower()
         for e in os.environ.get('ADMIN_EMAILS', '').split(',')

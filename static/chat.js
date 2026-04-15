@@ -59,8 +59,13 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     files.forEach(f => formData.append('files[]', f));
 
     try {
-      const { ids } = await API.uploadImages(formData);
-      ids.forEach((id, i) => {
+      const result = await API.uploadImages(formData);
+      if (!result.ids) {
+        console.error('[chat] image upload rejected:', result.error);
+        showUploadError(imgStrip, result.error || 'Upload failed');
+        return;
+      }
+      result.ids.forEach((id, i) => {
         pendingImageIds.push(id);
         const wrap = document.createElement('div');
         wrap.className = 'img-thumb-wrap';
@@ -83,6 +88,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
       imgStrip.style.display = 'flex';
     } catch (e) {
       console.error('[chat] image upload failed', e);
+      showUploadError(imgStrip, 'Could not upload image. Please try again.');
     }
     imgInput.value = '';
   });
@@ -321,6 +327,7 @@ function appendMessage(container, role, content, imageIds = []) {
         const a = document.createElement('a');
         a.href = `/api/images/${id}`;
         a.target = '_blank';
+        a.rel = 'noopener noreferrer';
         const img = document.createElement('img');
         img.src = `/api/images/${id}`;
         img.className = 'msg-image';
@@ -397,6 +404,15 @@ function appendTyping(container) {
   wrap.appendChild(bubble);
   container.appendChild(wrap);
   return wrap;
+}
+
+function showUploadError(strip, msg) {
+  const err = document.createElement('div');
+  err.className = 'msg-error';
+  err.textContent = `⚠ ${msg}`;
+  strip.appendChild(err);
+  strip.style.display = 'flex';
+  setTimeout(() => err.remove(), 5000);
 }
 
 function showStreamError(bubble, msg, retryFn) {
