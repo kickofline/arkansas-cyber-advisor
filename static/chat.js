@@ -72,6 +72,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
         removeBtn.textContent = '×';
         removeBtn.addEventListener('click', () => {
           pendingImageIds = pendingImageIds.filter(x => x !== id);
+          URL.revokeObjectURL(img.src);
           wrap.remove();
           if (!imgStrip.children.length) imgStrip.style.display = 'none';
         });
@@ -148,6 +149,7 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     inputEl.style.height = 'auto';
     const sentImageIds = [...pendingImageIds];
     pendingImageIds = [];
+    imgStrip.querySelectorAll('.img-thumb').forEach(i => URL.revokeObjectURL(i.src));
     imgStrip.innerHTML = '';
     imgStrip.style.display = 'none';
     sendBtn.disabled = true;
