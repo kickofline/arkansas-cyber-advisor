@@ -452,8 +452,8 @@ function attachFeedbackButtons(bubble, getHistory) {
     btn.className = 'feedback-btn';
     btn.title = sentiment === 'positive' ? 'Good response' : 'Bad response';
     btn.innerHTML = sentiment === 'positive'
-      ? '<svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8.864.046C7.908-.193 7.02.53 6.956 1.466c-.072 1.051-.23 2.016-.428 2.59-.125.36-.479 1.013-1.04 1.639-.557.623-1.282 1.178-2.131 1.41C2.685 7.288 2 7.87 2 8.72v4.001c0 .845.682 1.464 1.448 1.545 1.07.114 1.564.415 2.068.723l.048.03c.272.165.578.348.97.484.397.136.861.217 1.466.217h3.5c.937 0 1.599-.477 1.934-1.064a1.86 1.86 0 0 0 .254-.912c0-.152-.023-.312-.077-.464.201-.263.38-.578.488-.901.11-.33.172-.762.004-1.149.069-.13.12-.269.159-.403.077-.27.113-.568.113-.857 0-.288-.036-.585-.113-.856a2.144 2.144 0 0 0-.138-.362 1.9 1.9 0 0 0 .234-1.734c-.206-.592-.682-1.1-1.2-1.272-.847-.282-1.803-.276-2.516-.211a9.84 9.84 0 0 0-.443.05 9.365 9.365 0 0 0-.062-4.509A1.38 1.38 0 0 0 9.125.111 1.38 1.38 0 0 0 8.864.046z"/></svg>'
-      : '<svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M8.864 15.674c-.956.24-1.843-.484-1.908-1.42-.072-1.05-.23-2.015-.428-2.59-.125-.36-.479-1.012-1.04-1.638-.557-.624-1.282-1.179-2.131-1.41C2.685 8.432 2 7.85 2 7V3c0-.845.682-1.464 1.448-1.545 1.07-.114 1.564-.415 2.068-.723l.048-.03c.272-.166.578-.349.97-.484.397-.136.861-.217 1.466-.217h3.5c.937 0 1.599.477 1.934 1.064.164.287.254.627.254.912 0 .152-.023.312-.077.464.201.262.38.577.488.9.11.33.172.762.004 1.15.069.13.12.268.159.403.077.27.113.567.113.856 0 .289-.036.586-.113.856-.035.12-.08.244-.138.363.394.571.418 1.2.234 1.733-.206.592-.682 1.1-1.2 1.272-.847.283-1.803.276-2.516.211a9.877 9.877 0 0 1-.443-.05 9.364 9.364 0 0 1-.062 4.51c-.138.508-.32.968-.64 1.226z"/></svg>';
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M7 22V11"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
     btn.addEventListener('click', () => showFeedbackModal(sentiment, getHistory(), btn, row));
     row.appendChild(btn);
   });
@@ -469,7 +469,9 @@ function showFeedbackModal(sentiment, conversation, triggerBtn, feedbackRow) {
   overlay.id = 'feedback-modal';
   overlay.className = 'feedback-overlay';
 
-  const icon  = sentiment === 'positive' ? '👍' : '👎';
+  const icon  = sentiment === 'positive'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M7 22V11"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
   const label = sentiment === 'positive' ? 'Good response' : 'Bad response';
 
   overlay.innerHTML = `
@@ -480,8 +482,7 @@ function showFeedbackModal(sentiment, conversation, triggerBtn, feedbackRow) {
         <button class="feedback-close" aria-label="Close">&times;</button>
       </div>
       <p class="feedback-notice">
-        Your feedback — including this conversation — will be sent to the
-        <strong>Arkansas Cyber Advisor team</strong>.
+        Your feedback, including this conversation, will be sent to the Arkansas Cyber Advisor team.
       </p>
       <label class="feedback-label" for="fb-comment">Add a comment <span class="feedback-optional">(optional)</span></label>
       <textarea id="fb-comment" class="feedback-textarea" rows="3" placeholder="What was helpful or unhelpful?"></textarea>

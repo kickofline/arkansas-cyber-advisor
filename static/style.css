@@ -3,10 +3,10 @@
 :root {
   --bg:          #eaeaea;
   --bg-2:        #ffffff;
-  --bg-3:        #dedad4;
+  --bg-3:        #ffffff;
   --border:      rgba(0,0,0,0.08);
   --text:        #1a1a1a;
-  --text-muted:  #a3a3a3;
+  --text-muted:  #585858;
   --accent:      #532987;
   --accent-dark: #FFC417;
   --danger:      #cc3333;
@@ -737,7 +737,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   align-items: center;
   gap: 8px;
 }
-.feedback-dialog-icon { font-size: 20px; }
+.feedback-dialog-icon { display: inline-flex; color: var(--accent); }
 .feedback-dialog-title { font-size: 16px; font-weight: 600; flex: 1; }
 .feedback-close {
   background: none;
@@ -807,9 +807,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .feedback-status {
   font-size: 13px;
   color: var(--danger);
-  min-height: 1em;
   margin: 0;
+  display: none;
 }
+.feedback-status:not(:empty) { display: block; }
 
 /* ── Admin Panel ────────────────────────────────────────────────────────────── */
 .admin-wrap {
