@@ -290,7 +290,10 @@ async function renderChat(router, chatId, scenarioPrompt = null) {
     if (fullContent) history.push({ role: 'assistant', content: fullContent });
 
     // Attach feedback buttons to the completed assistant bubble
-    if (fullContent && bubble) attachFeedbackButtons(bubble, () => history);
+    if (fullContent && bubble) {
+      attachFeedbackButtons(bubble, () => history);
+      if (isNearBottom(messagesEl)) scrollToBottom(messagesEl);
+    }
 
     // Generate title after response so it can reflect both question and answer
     if (isFirstMessage && fullContent) generateAndSetTitle(activeChatId, `${text}\n\n${fullContent}`);
